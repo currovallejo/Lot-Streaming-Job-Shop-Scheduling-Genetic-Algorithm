@@ -114,8 +114,10 @@ class JobShopRandomParams(JobShopParams):
         seq = self._random_sequences(machines, jobs)
         setup = self._random_setup(machines, jobs, t_span_setup)
         super().__init__(machines, jobs, p_times, seq, setup, lots)
-    
+
+        # Non random parameters
         self.demand = {i:50 for i in range(0,n_jobs+1)}
+        self.shift_time = 480 # 8 hours in minutes
     
     def _random_times(self, machines, jobs, t_span):
         np.random.seed(self.seed)

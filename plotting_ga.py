@@ -18,7 +18,7 @@ import chromosome_generator
 import params
 
 #--------- PLOTTING --------- 
-def plot_gantt(df_results, params, demand, show=True, version=0):
+def plot_gantt(df_results, params, show=True, version=0):
     """
     Generates and saves an .html file where is plotted the gantt of a job shop scheduling program
 
@@ -33,7 +33,7 @@ def plot_gantt(df_results, params, demand, show=True, version=0):
 
     """
     n_machines, n_jobs, n_lots, seed = len(params.machines), len(params.jobs), len(params.lots), params.seed
-    demand = demand[0]
+    demand = params.demand[0]
 
     # converting all dataframe numbers to int format
     df = df_results.astype(int)
@@ -78,7 +78,7 @@ def plot_gantt(df_results, params, demand, show=True, version=0):
     # Set the X-axis type to 'linear'
     fig.layout.xaxis.type = "linear"
 
-    fig.update_xaxes(tick0=0, dtick=1000)
+    fig.update_xaxes(tick0=0, dtick=params.shift_time)
         
     for j,Bar in enumerate(fig.data):
         # columna de dataframe de filtrado
@@ -103,7 +103,7 @@ def plot_gantt(df_results, params, demand, show=True, version=0):
     # Set the X-axis type to 'linear'
     fig_s.layout.xaxis.type = "linear"
     fig_s.update_traces(marker_pattern_shape="/")
-    fig_s.update_xaxes(tick0=0, dtick=200)
+    fig_s.update_xaxes(tick0=0, dtick=params.shift_time)
     fig_s.update_traces(marker_color='white')
         
     for j,Bar in enumerate(fig_s.data):

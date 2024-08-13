@@ -37,9 +37,8 @@ def generate_chromosome(params):
     for job in params.jobs:
         chromosome_lhs_j = []
         for lot in params.lots:
-                chromosome_lhs_j.append(random.random())
-        
-        chromosome_lhs.append(np.array(chromosome_lhs_j))
+                chromosome_lhs.append(random.random())
+
     chromosome_lhs = np.array(chromosome_lhs)
     
     # Generate chromosome right-hand side
@@ -47,10 +46,10 @@ def generate_chromosome(params):
     for j in params.jobs:
         for u in params.lots:
             for m in params.seq[j]:
-                sublots.append(np.array([j,u]))
+                sublots.append((j,u))
 
     random.shuffle(sublots)    
-    chromosome_rhs = np.array(sublots)
+    chromosome_rhs = sublots
 
     # Concatenate both sides 
     chromosome =  [chromosome_lhs, chromosome_rhs]
