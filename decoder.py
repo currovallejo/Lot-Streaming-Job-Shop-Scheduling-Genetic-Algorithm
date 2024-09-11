@@ -20,19 +20,22 @@ import plotting_ga
 
 #--------- DECODER ---------
 
-def decode_chromosome(chromosome, params, shifts=False):
+def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
     """
     Decodes a chromosome to a solution
 
     Args:
         chromosome: numpy array with the chromosome
         params: object of class JobShopRandomParams
+        shifts: boolean to indicate if shift constraints are considered
+        seq_dep_setup: boolean to indicate if setup times are sequence dependent
 
     Returns:
         y: numpy array with setup start times of all lots
         c: numpy array with completion times of all lots
         makespan: integer with makespan of the solution
     """
+    # Functions for active scheduling
     def distribute_demand():
         """
         Distributes a total demand into parts based on the given fractions
@@ -312,19 +315,21 @@ def build_chromosome_results_df(chromosome_mod, y, x, c):
 
     return df_filtered
 
-def get_dataframe_results(chromosome, params, shifts=False):
+def get_dataframe_results(chromosome, params, shifts=False, seq_dep_setup=False):
     """
     Get the results of a chromosome in a dataframe
 
     Args:
         chromosome: numpy array with the chromosome
         params: object of class JobShopRandomParams
+        shifts: boolean to indicate if shift constraints are considered
+        seq_dep_setup: boolean to indicate if setup times are sequence dependent
 
     Returns:
         df_results: dataframe with the results of the chromosome
     """
     # Decode the chromosome
-    _, _, y, c, chromosome_mod = decode_chromosome(chromosome, params, shifts)
+    _, _, y, c, chromosome_mod = decode_chromosome(chromosome, params, shifts, seq_dep_setup)
 
     # Get start time of each lot
     x = get_chromosome_start_times(chromosome_mod, params, c)

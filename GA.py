@@ -72,11 +72,17 @@ def create_individual_factory(params):
         return chromosome_generator.generate_chromosome(params)
     return create_individual
 
-def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, plot=True):
+def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, seq_dep_setup=False, plot=True):
     """
     Genetic algorithm for LSJSP problem developed with DEAP package
 
     Args:
+        params: parameters of the problem
+        population_size: number of individuals in the population
+        num_generations: number of generations
+        shifts: boolean, True if shifts are considered
+        seq_dep_setup: boolean, True if sequence dependent setup times are considered
+        plot: boolean, True if Gantt chart is plotted
 
     Returns:
         best_makespan: best fitness value found
@@ -84,8 +90,8 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, p
     """
     #--------- DEAP SETUP ---------
     # Step 1: Define the fitness function
-    def evalFitness(individual, params, shifts):
-        decoded_chromosome = decoder.decode_chromosome(individual, params, shifts)
+    def evalFitness(individual, params, shifts, seq_dep_setup):
+        decoded_chromosome = decoder.decode_chromosome(individual, params, shifts, seq_dep_setup)
         fitness = decoded_chromosome[0] # makespan
 
         if shifts:
@@ -126,7 +132,7 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, p
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Evaluation
-    toolbox.register("evaluate", evalFitness, params=params, shifts=shifts)
+    toolbox.register("evaluate", evalFitness, params=params, shifts=shifts, seq_dep_setup=seq_dep_setup)
     
     # Step 4: Create the population
     start_population = time.time()
@@ -198,17 +204,23 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, p
         else:
             print('Best fitness (makespan): ', best_fitness[0])
         
-        df_results = decoder.get_dataframe_results(best_individual, params, shifts)
+        df_results = decoder.get_dataframe_results(best_individual, params, shifts, seq_dep_setup)
         plotting_ga.plot_gantt(df_results, params)
     
     return best_fitness[0], best_individual
 
 def main():
-    my_params = params.JobShopRandomParams(n_machines=3, n_jobs=6, n_lots=4, seed=4)
-    # my_params.demand = {i:400 for i in range(0,len(my_params.jobs)+1)}
-    best_fitness = 0
+    # contraints
     shifts_constraint = True
+    sequence_dependent = True
 
+    # Parameters
+    my_params = params.JobShopRandomParams(n_machines=3, n_jobs=3, n_lots=3, seed=4)
+    my_params.printParams(sequence_dependent=sequence_dependent, save_to_excel=False)
+    # my_params.demand = {i:400 for i in range(0,len(my_params.jobs)+1)}
+    
+    # Genetic algorithm
+    best_fitness = 0
     start = time.time()
     current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=200, shifts=shifts_constraint, plot=True)
     end = time.time()

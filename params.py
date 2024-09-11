@@ -56,7 +56,7 @@ class JobSequence(list):
 
 class JobShopParams:
     
-    def __init__(self, machines: Iterable, jobs: Iterable, p_times: dict, seq: dict, setup: dict, lots: Iterable):
+    def __init__(self, machines: Iterable, jobs: Iterable, p_times: dict, seq: dict, setup: dict, sd_setup:dict, lots: Iterable):
         """White label class for job-shop parameters
 
         Parameters
@@ -81,6 +81,7 @@ class JobShopParams:
         self.p_times = p_times
         self.seq = seq
         self.setup = setup
+        self.sd_setup = sd_setup
         self.lots = lots
 
 class JobShopRandomParams(JobShopParams):
@@ -110,10 +111,10 @@ class JobShopRandomParams(JobShopParams):
         jobs = np.arange(n_jobs)
         p_times = self._random_times(machines, jobs, t_span)
         lots=np.arange(n_lots,dtype=int)
-        # p_times_lots = self.p_times_lots(machines, jobs, p_times, lots)
         seq = self._random_sequences(machines, jobs)
         setup = self._random_setup(machines, jobs, t_span_setup)
-        super().__init__(machines, jobs, p_times, seq, setup, lots)
+        sd_setup = self._random_setup_sd(machines, jobs, t_span_setup)
+        super().__init__(machines, jobs, p_times, seq, setup, sd_setup, lots)
 
         # Non random parameters
         self.demand = {i:50 for i in range(0,n_jobs+1)}
@@ -145,7 +146,7 @@ class JobShopRandomParams(JobShopParams):
 
         return JobSequence(sequence)
     
-    def _random_setup(self, machines, jobs, t_span_setup):
+    def _random_setup(self, machines, jobs, t_span_setup): # sequence independent setup times
         np.random.seed(self.seed)
         t=np.arange(t_span_setup[0],t_span_setup[1]) # meto en un vector todos los tiempos posibles
         return{
@@ -153,8 +154,34 @@ class JobShopRandomParams(JobShopParams):
             for m in machines
             for j in jobs
         }  
-       
-    def printParams(self):
+
+    def _random_setup_sd(self, machines, jobs, t_span_setup): # sequence dependent setup times
+        '''
+        Generates random SEQUENCE DEPENDENT setup times for each job on each machine.
+
+        2 more jobs are added to the list of jobs_extended: 0 and n_jobs+1 in order to fit with the random values generated for solving the MILP model. It is just to get the same solution and prove that the GA works.
+        2 dummy jobs are strictly needed for the MILP modelling.
+        '''
+        np.random.seed(self.seed)
+        t=np.arange(t_span_setup[0],t_span_setup[1]) # meto en un vector todos los tiempos posibles
+        sd_setup_times={}
+        jobs_extended = list(range(0,jobs[-1]+3)) # add dummy jobs
+        for m in machines:
+            for j in jobs_extended:
+                if j==0 or j==jobs_extended[-1]: # for dummy jobs
+                    for k in jobs_extended:
+                        sd_setup_times[m,j,k]=0
+                else:
+                    sd_setup_times[m,j,0] = 50
+                    for k in jobs_extended:
+                        if j==k:
+                            sd_setup_times[m,j,k]=0
+                        elif k!=0:
+                            sd_setup_times[m,j,k] = np.random.choice(t)
+        
+        return sd_setup_times
+
+    def printParams(self, sequence_dependent=False, save_to_excel=False):
         print("[MACHINES]: \n", self.machines, "\n")
         print("[JOBS]: \n", self.jobs, "\n")
         print("[BATCHES]: \n", self.lots, "\n")
@@ -182,27 +209,50 @@ class JobShopRandomParams(JobShopParams):
         # Print the DataFrame
         print(processTimes_df, "\n")
 
-        print("[SETUP TIMES] the setup time associated with each job on each machine is:")
-        # Determine the dimensions of the matrix
-        max_job = max(key[1] for key in self.setup.keys())
-        max_machine = max(key[0] for key in self.setup.keys())
+        if sequence_dependent:
+            print("[SEQ DEPENDENT SETUP TIMES] \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in sd_setup dictionary is j=1 (predecessor) or k=1 (successor) \n the setup time associated with each job on each machine is:")
+            for m in self.machines:
+                print("Machine ", m)
+                n_columns=len(self.jobs)
+                n_rows=len(self.jobs)+1
+                matrix = np.zeros((n_rows, n_columns), dtype=int)
+                for key, value in self.sd_setup.items():
+                    if key[0]==m:
+                        if key[1]!=0 and key[1]!=self.jobs[-1]+2:
+                            if key[2]!=self.jobs[-1]+2:
+                                matrix[key[2]][key[1]-1] = value
 
-        # Create an empty matrix filled with zeros
-        matrix = np.zeros((max_machine + 1, max_job + 1), dtype=int)
+                # Create a DataFrame with row and column labels
+                setup_jobs = [f'Job {i}' for i in range(n_columns)] # columns are successors jobs
+                precedence_jobs = [f'Job {j-1}' for j in range(n_rows)] # rows are predecessors jobs
 
-        # Fill the matrix with the given data
-        for key, value in self.setup.items():
-            matrix[key[0]][key[1]] = value
+                setupTimes_df = pd.DataFrame(matrix, columns=setup_jobs, index=precedence_jobs)
+
+                # Print the DataFrame
+                print(setupTimes_df, "\n")
+
+        else:
+            print("[SEQ INDEPENDENT SETUP TIMES] the setup time associated with each job on each machine is:")
+            # Determine the dimensions of the matrix
+            max_job = max(key[1] for key in self.setup.keys())
+            max_machine = max(key[0] for key in self.setup.keys())
+
+            # Create an empty matrix filled with zeros
+            matrix = np.zeros((max_machine + 1, max_job + 1), dtype=int)
+
+            # Fill the matrix with the given data
+            for key, value in self.setup.items():
+                matrix[key[0]][key[1]] = value
 
 
-        # Create a DataFrame with row and column labels
-        jobs = [f'Job {i}' for i in range(max_job + 1)]
-        machines = [f'Machine {j}' for j in range(max_machine + 1)]
+            # Create a DataFrame with row and column labels
+            jobs = [f'Job {i}' for i in range(max_job + 1)]
+            machines = [f'Machine {j}' for j in range(max_machine + 1)]
 
-        setupTimes_df = pd.DataFrame(matrix, columns=jobs, index=machines)
+            setupTimes_df = pd.DataFrame(matrix, columns=jobs, index=machines)
 
-        # Print the DataFrame
-        print(setupTimes_df, "\n")
+            # Print the DataFrame
+            print(setupTimes_df, "\n")
 
         print("[SEQ] the sequence for each job is: ")
 
@@ -218,14 +268,15 @@ class JobShopRandomParams(JobShopParams):
                            })
 
         # save into an excel
+        if save_to_excel:
         # combine all dataframes
-        combined_df = pd.concat([processTimes_df, setupTimes_df,seq_df], axis=1)
+            combined_df = pd.concat([processTimes_df, setupTimes_df,seq_df], axis=1)
 
-        # File path
-        n_machines, n_jobs, maxlots, seed,= len(self.machines), len(self.jobs), len(self.lots), self.seed, 
-        file_path = f'v5_m{n_machines}_j{n_jobs}_u{maxlots}_s{seed}_data.xlsx'
-        # Save to excel
-        combined_df.to_excel(file_path, index=False, sheet_name='Sheet1')
+            # File path
+            n_machines, n_jobs, maxlots, seed,= len(self.machines), len(self.jobs), len(self.lots), self.seed, 
+            file_path = f'v5_m{n_machines}_j{n_jobs}_u{maxlots}_s{seed}_data.xlsx'
+            # Save to excel
+            combined_df.to_excel(file_path, index=False, sheet_name='Sheet1')
 
     def to_dict(self):
         """Convert class attributes to dictionary"""
