@@ -8,7 +8,7 @@ Github: https://github.com/currovallejog
 Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
 Script: decoder.py - decodification of the chromosome to the solution
 """
-
+# just to commit
 #--------- LIBRARIES ---------
 import numpy as np
 import pandas as pd
