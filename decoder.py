@@ -71,10 +71,17 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
         return chromosome_lhs_m
     
     def is_empty_machine() -> bool:
-        if precedences[current_machine] == []: # if is first lot in the machine
-            empty_machine = True
+        if seq_dep_setup:
+            if precedences[current_machine] == [-1]: # if is first lot in the machine
+                precedences[current_machine]
+                empty_machine = True
+            else:
+                empty_machine = False
         else:
-            empty_machine = False
+            if precedences[current_machine] == []: # if is first lot in the machine
+                empty_machine = True
+            else:
+                empty_machine = False
         return empty_machine
     
     def is_first_machine()-> bool:
@@ -110,24 +117,38 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
     # Functions for shift constraints
 
     def is_big_lotsize() -> bool:
-        lot_size_time = params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
-        # print('lot size:', lot_size_time)
+        if seq_dep_setup:
+            lot_size_time = params.sd_setup[current_machine, current_job+1, precedences[current_machine][-1][0]+1] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]    
+        else:
+            lot_size_time = params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
         if lot_size_time > params.shift_time:
             return True
         else:
             return False
     
     def fit_within_predecessor_shift():
-        if completion_in_current_machine()%params.shift_time + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot] <= params.shift_time:
-            return True
+        if seq_dep_setup:
+            if completion_in_current_machine()%params.shift_time + params.sd_setup[current_machine, current_job+1, precedences[current_machine][-1][0]+1] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot] <= params.shift_time:
+                return True
+            else:
+                return False
         else:
-            return False
+            if completion_in_current_machine()%params.shift_time + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot] <= params.shift_time:
+                return True
+            else:
+                return False
     
     def fit_within_previous_shift():
-        if completion_in_previous_machine()%params.shift_time + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot] <= params.shift_time:
-            return True
+        if seq_dep_setup:
+            if completion_in_previous_machine()%params.shift_time + params.sd_setup[current_machine, current_job+1, precedences[current_machine][-1][0]+1] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot] <= params.shift_time:
+                return True
+            else:
+                return False
         else:
-            return False
+            if completion_in_previous_machine()%params.shift_time + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot] <= params.shift_time:
+                return True
+            else:
+                return False
         
     def lot_start_time_with_shifts():
         if is_big_lotsize():
@@ -193,7 +214,10 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
     # Dictionary to track precedence in scheduling
     precedences = {}
     for machine in params.machines:
-        precedences[machine] = []
+        if seq_dep_setup:
+            precedences[machine] = [(-1,0)]
+        else:
+            precedences[machine] = []
     
     # Arrays to store times of all sublots
     y = np.full((n_machines, n_jobs, n_lots), 0) # setup start time
@@ -217,7 +241,10 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
                 lot_start_time()
             
             # Calculate the completion time of the lot
-            c[current_machine, current_job, current_lot] = y[current_machine, current_job, current_lot] + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
+            if seq_dep_setup:
+                c[current_machine, current_job, current_lot] = y[current_machine, current_job, current_lot] + params.sd_setup[current_machine, current_job+1, precedences[current_machine][-1][0]+1] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
+            else:
+                c[current_machine, current_job, current_lot] = y[current_machine, current_job, current_lot] + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
         
             # Update makespan
             if c[current_machine, current_job, current_lot] > makespan:
@@ -341,7 +368,7 @@ def get_dataframe_results(chromosome, params, shifts=False, seq_dep_setup=False)
 def main():
     # Generate a random chromosome
     my_params = params.JobShopRandomParams(n_machines=3, n_jobs=3, n_lots=3, seed=4)
-    my_params.printParams()
+    my_params.printParams(sequence_dependent=True)
     demand = {i: 100 for i in range(0, 11)}
     # chromosome = chromosome_generator.generate_chromosome(my_params)
     # chromosome = [np.array([19., 17., 14., 30., 20.,  0.,  2., 28., 20.]), [(0, 0), (1, 2), (1, 2), (0, 1), (2, 1), (0, 2), (1, 0), (1, 1), (0, 0), (1, 0), (0, 1), (0, 0), (0, 2), (2, 2), (0, 1), (2, 0), (1, 1), (0, 2)]]
@@ -351,7 +378,7 @@ def main():
        0.85690449, 0.62416912, 0.51083418, 0.21353647]), [(1, 2), (2, 2), (0, 0), (0, 2), (0, 0), (1, 1), (1, 0), (0, 0), (1, 1), (0, 1), (1, 0), (0, 2), (2, 1), (1, 2), (0, 1), (2, 0), (0, 2), (0, 1)]]
 
     # Decode the chromosome
-    makespan, penalty, y, c, chromosome_mod = decode_chromosome(chromosome, my_params, shifts = True)
+    makespan, penalty, y, c, chromosome_mod = decode_chromosome(chromosome, my_params, shifts = True, seq_dep_setup = True)
     print("makespan: \n", makespan)
     print("penalty: \n", penalty)
     print('setup start times: \n', y)
@@ -366,6 +393,7 @@ def main():
 
     # Plot gantt
     plotting_ga.plot_gantt(df_results, my_params, demand) 
+    print("nice job")
 
 if __name__ == "__main__":
     main()

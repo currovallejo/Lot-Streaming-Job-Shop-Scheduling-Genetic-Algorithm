@@ -18,7 +18,7 @@ import chromosome_generator
 import params
 
 #--------- PLOTTING --------- 
-def plot_gantt(df_results, params, show=True, version=0):
+def plot_gantt(df_results, params, show=True, version=0, shifts=False, seq_dep_setup=False):
     """
     Generates and saves an .html file where is plotted the gantt of a job shop scheduling program
 
@@ -114,5 +114,5 @@ def plot_gantt(df_results, params, show=True, version=0):
         Bar.showlegend = True
         fig.add_trace(Bar)
 
-    fig.write_html(f'GA_m{n_machines}_j{n_jobs}_u{n_lots}_s{seed}_d{demand}_setup_no_pmtn{version}.html', (n_machines, n_jobs, n_lots, seed,demand, version), auto_open=True if show else False)
+    fig.write_html(f'GA_m{n_machines}_j{n_jobs}_u{n_lots}_s{seed}_d{demand}_shifts_{shifts}_setup_{seq_dep_setup}_no_pmtn{version}.html', (n_machines, n_jobs, n_lots, seed,demand, version), auto_open=True if show else False)
 

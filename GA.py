@@ -200,34 +200,43 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
     best_fitness = best_individual.fitness.values
     if plot:
         if shifts:
-            print('Best fitness (makespan + penalty): ', best_fitness[0])
+            print('Best fitness (makespan + shift constraint penalty): ', best_fitness[0])
         else:
             print('Best fitness (makespan): ', best_fitness[0])
         
         df_results = decoder.get_dataframe_results(best_individual, params, shifts, seq_dep_setup)
-        plotting_ga.plot_gantt(df_results, params)
+        plotting_ga.plot_gantt(df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup)
     
     return best_fitness[0], best_individual
 
 def main():
+    #--------- PARAMETERS AND CONSTRAINTS (CHANGE FOR DIFFERENT SCENARIOS) ---------
     # contraints
     shifts_constraint = True
     sequence_dependent = True
 
     # Parameters
-    my_params = params.JobShopRandomParams(n_machines=3, n_jobs=3, n_lots=3, seed=4)
+    n_machines = 5 # number of machines
+    n_jobs = 6 # number of jobs
+    n_lots = 5 # number of lots
+    seed = 4 # seed for random number generator
+    demand = {i:100 for i in range(0,n_jobs+1)} # demand of each job
+
+    # Create parameters object
+    my_params = params.JobShopRandomParams(n_machines=n_machines, n_jobs=n_jobs, n_lots=n_lots, seed=seed)
+    my_params.demand = demand # demand of each job
     my_params.printParams(sequence_dependent=sequence_dependent, save_to_excel=False)
-    # my_params.demand = {i:400 for i in range(0,len(my_params.jobs)+1)}
     
+    #--------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
     # Genetic algorithm
     best_fitness = 0
     start = time.time()
-    current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=200, shifts=shifts_constraint, plot=True)
+    current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=150, shifts=shifts_constraint,seq_dep_setup=sequence_dependent, plot=True)
     end = time.time()
     print('Time elapsed: ', end - start)
     print('Current fitness: ', current_fitness)
     if shifts_constraint:
-        makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(best_individual, my_params, shifts=True)
+        makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(best_individual, my_params, shifts=shifts_constraint, seq_dep_setup=sequence_dependent)
         print('Makespan: ', makespan)
         print('Penalty: ', penalty)
         print(best_individual)

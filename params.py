@@ -161,6 +161,8 @@ class JobShopRandomParams(JobShopParams):
 
         2 more jobs are added to the list of jobs_extended: 0 and n_jobs+1 in order to fit with the random values generated for solving the MILP model. It is just to get the same solution and prove that the GA works.
         2 dummy jobs are strictly needed for the MILP modelling.
+        j = successor
+        k = predecessor
         '''
         np.random.seed(self.seed)
         t=np.arange(t_span_setup[0],t_span_setup[1]) # meto en un vector todos los tiempos posibles
@@ -185,6 +187,7 @@ class JobShopRandomParams(JobShopParams):
         print("[MACHINES]: \n", self.machines, "\n")
         print("[JOBS]: \n", self.jobs, "\n")
         print("[BATCHES]: \n", self.lots, "\n")
+        print("[DEMAND]: \n", self.demand, "\n")
         print("[PROCESS TIMES]the working time associated with each job on each machine is:")
         # Determine the dimensions of the matrix
         max_job = max(key[1] for key in self.p_times.keys())
@@ -210,7 +213,7 @@ class JobShopRandomParams(JobShopParams):
         print(processTimes_df, "\n")
 
         if sequence_dependent:
-            print("[SEQ DEPENDENT SETUP TIMES] \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in sd_setup dictionary is j=1 (predecessor) or k=1 (successor) \n the setup time associated with each job on each machine is:")
+            print("[SEQ DEPENDENT SETUP TIMES] row(k) = predecessor | column(j) = successor  \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in sd_setup dictionary is j=1 (successor) or k=1 (predecessor) \n the setup time associated with each job on each machine is:")
             for m in self.machines:
                 print("Machine ", m)
                 n_columns=len(self.jobs)
