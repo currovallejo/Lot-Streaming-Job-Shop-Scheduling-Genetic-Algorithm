@@ -212,7 +212,7 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
 def main():
     #--------- PARAMETERS AND CONSTRAINTS (CHANGE FOR DIFFERENT SCENARIOS) ---------
     # contraints
-    shifts_constraint = True
+    shifts_constraint = False
     sequence_dependent = True
 
     # Parameters
@@ -231,7 +231,7 @@ def main():
     # Genetic algorithm
     best_fitness = 0
     start = time.time()
-    current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=150, shifts=shifts_constraint,seq_dep_setup=sequence_dependent, plot=True)
+    current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=100, shifts=shifts_constraint,seq_dep_setup=sequence_dependent, plot=True)
     end = time.time()
     print('Time elapsed: ', end - start)
     print('Current fitness: ', current_fitness)
