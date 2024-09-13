@@ -229,7 +229,6 @@ def main():
     
     #--------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
     # Genetic algorithm
-    best_fitness = 0
     start = time.time()
     current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=100, shifts=shifts_constraint,seq_dep_setup=sequence_dependent, plot=True)
     end = time.time()
@@ -241,8 +240,6 @@ def main():
         print('Penalty: ', penalty)
         print(best_individual)
         print(chromosome_mod)
-    if current_fitness < best_fitness:
-        best_fitness = current_fitness
 
 
 if __name__ == "__main__":
