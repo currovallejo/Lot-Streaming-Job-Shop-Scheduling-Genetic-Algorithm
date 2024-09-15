@@ -8,14 +8,15 @@ Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
 Script: chromosome-generator.py - generation of random chromosomes
 """
 
-#--------- LIBRARIES ---------
+# --------- LIBRARIES ---------
 import numpy as np
 import random
 
-#--------- OTHER PYTHON FILES USED ---------
+# --------- OTHER PYTHON FILES USED ---------
 import params
 
-#--------- CHROMOSOME GENERATOR ---------
+# --------- CHROMOSOME GENERATOR ---------
+
 
 def generate_chromosome(params):
     """
@@ -31,36 +32,36 @@ def generate_chromosome(params):
     # Generate chromosome left-hand side
     chromosome_lhs = []
 
-        # Create a random number generator instance
-    rng = np.random.default_rng()
-
     for job in params.jobs:
-        chromosome_lhs_j = []
         for lot in params.lots:
-                chromosome_lhs.append(random.random())
+            chromosome_lhs.append(random.random())
 
     chromosome_lhs = np.array(chromosome_lhs)
-    
+
     # Generate chromosome right-hand side
     sublots = []
     for j in params.jobs:
         for u in params.lots:
             for m in params.seq[j]:
-                sublots.append((j,u))
+                sublots.append((j, u))
 
-    random.shuffle(sublots)    
+    random.shuffle(sublots)
     chromosome_rhs = sublots
 
-    # Concatenate both sides 
-    chromosome =  [chromosome_lhs, chromosome_rhs]
+    # Concatenate both sides
+    chromosome = [chromosome_lhs, chromosome_rhs]
 
     return chromosome
 
-#--------- MAIN ---------
+
+# --------- MAIN ---------
 def main():
-    my_random_params = params.JobShopRandomParams(n_machines=3, n_jobs=3, n_lots=3, seed=4)
+    my_random_params = params.JobShopRandomParams(
+        n_machines=3, n_jobs=3, n_lots=3, seed=4
+    )
     chromosome = generate_chromosome(my_random_params)
     print(chromosome)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

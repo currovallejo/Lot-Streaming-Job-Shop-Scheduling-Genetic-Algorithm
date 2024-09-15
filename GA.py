@@ -8,11 +8,12 @@ Github: https://github.com/currovallejog
 Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
 Script: GA.py - Genetic Algorithm
 """
-#--------- LIBRARIES ---------
-from deap import base, creator, tools, algorithms
+
+# --------- LIBRARIES ---------
+from deap import base, creator, tools
 import time
 
-#--------- OTHER PYTHON FILES USED ---------
+# --------- OTHER PYTHON FILES USED ---------
 import chromosome_generator
 import params
 import decoder
@@ -20,7 +21,8 @@ import plotting_ga
 import copy
 from genetic_operators import *
 
-#--------- GENETIC OPERATORS ---------
+
+# --------- GENETIC OPERATORS ---------
 # Cross-over operators
 def spc1_crossover_lhs(ind1, ind2):
     new_ind1 = copy.deepcopy(ind1)
@@ -30,6 +32,7 @@ def spc1_crossover_lhs(ind1, ind2):
     new_ind2[0] = new_ind2_lhs
     return new_ind1, new_ind2
 
+
 def spc2_crossover_lhs(ind1, ind2):
     new_ind1 = copy.deepcopy(ind1)
     new_ind2 = copy.deepcopy(ind2)
@@ -38,7 +41,8 @@ def spc2_crossover_lhs(ind1, ind2):
     new_ind2[0] = new_ind2_lhs
     return new_ind1, new_ind2
 
-def cxPartiallyMatched_rhs(ind1, ind2): 
+
+def cxPartiallyMatched_rhs(ind1, ind2):
     new_ind1 = copy.deepcopy(ind1)
     new_ind2 = copy.deepcopy(ind2)
     rhs_1 = ind1[1]
@@ -47,6 +51,7 @@ def cxPartiallyMatched_rhs(ind1, ind2):
     new_ind1[1] = new_ind1_rhs
     new_ind2[1] = new_ind2_rhs
     return new_ind1, new_ind2
+
 
 def cxOrdered_rhs(ind1, ind2):
     new_ind1 = copy.deepcopy(ind1)
@@ -58,6 +63,7 @@ def cxOrdered_rhs(ind1, ind2):
     new_ind2[1] = new_ind2_rhs
     return new_ind1, new_ind2
 
+
 # Mutation operators
 def sstm_mutation_lhs(ind):
     new_ind = copy.deepcopy(ind)
@@ -65,14 +71,25 @@ def sstm_mutation_lhs(ind):
     new_ind[0] = new_ind_lhs
     return new_ind
 
-#--------- GENETIC ALGORITHM ---------
+
+# --------- GENETIC ALGORITHM ---------
+
 
 def create_individual_factory(params):
     def create_individual():
         return chromosome_generator.generate_chromosome(params)
+
     return create_individual
 
-def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, seq_dep_setup=False, plot=True):
+
+def lsjsp_ga(
+    params,
+    population_size: int,
+    num_generations: int,
+    shifts=False,
+    seq_dep_setup=False,
+    plot=True,
+):
     """
     Genetic algorithm for LSJSP problem developed with DEAP package
 
@@ -88,22 +105,25 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
         best_makespan: best fitness value found
         df_results: parameters of best solution found
     """
-    #--------- DEAP SETUP ---------
+
+    # --------- DEAP SETUP ---------
     # Step 1: Define the fitness function
     def evalFitness(individual, params, shifts, seq_dep_setup):
-        decoded_chromosome = decoder.decode_chromosome(individual, params, shifts, seq_dep_setup)
-        fitness = decoded_chromosome[0] # makespan
+        decoded_chromosome = decoder.decode_chromosome(
+            individual, params, shifts, seq_dep_setup
+        )
+        fitness = decoded_chromosome[0]  # makespan
 
         if shifts:
             shift_penalty = decoded_chromosome[1]
-            fitness += shift_penalty # makespan + shift_penalty
+            fitness += shift_penalty  # makespan + shift_penalty
 
         return (fitness,)
-    
+
     # Step 2: Create the individual and population
     # Define the fitness class for minimization
-    creator.create("FitnessMin", base.Fitness, weights=(-1.0,)) 
-    
+    creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+
     # Define the individual class
     creator.create("Individual", list, fitness=creator.FitnessMin)
 
@@ -114,7 +134,9 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
     create_individual = create_individual_factory(params)
 
     # Register the individual creation function
-    toolbox.register("individual", tools.initIterate, creator.Individual, create_individual)
+    toolbox.register(
+        "individual", tools.initIterate, creator.Individual, create_individual
+    )
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
     # Step 3: Register genetic operators
@@ -132,13 +154,25 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Evaluation
-    toolbox.register("evaluate", evalFitness, params=params, shifts=shifts, seq_dep_setup=seq_dep_setup)
-    
+    toolbox.register(
+        "evaluate",
+        evalFitness,
+        params=params,
+        shifts=shifts,
+        seq_dep_setup=seq_dep_setup,
+    )
+
     # Step 4: Create the population
     start_population = time.time()
-    population = toolbox.population(n = population_size)
+    population = toolbox.population(n=population_size)
     end_population = time.time()
-    print('Population of ', population_size, ' individuals created in ', end_population - start_population, ' seconds')
+    print(
+        "Population of ",
+        population_size,
+        " individuals created in ",
+        end_population - start_population,
+        " seconds",
+    )
 
     # Step 5: Define the genetic algorithm
     # Probabilities for genetic operators
@@ -151,7 +185,11 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
         start_selection = time.time()
         offspring = toolbox.select(population, len(population))
         end_selection = time.time()
-        print('Selection with tournament of size 3 done in ', end_selection - start_selection, ' seconds')
+        print(
+            "Selection with tournament of size 3 done in ",
+            end_selection - start_selection,
+            " seconds",
+        )
         # Clone the selected individuals
         offspring = list(map(toolbox.clone, offspring))
 
@@ -190,54 +228,88 @@ def lsjsp_ga(params, population_size:int, num_generations:int, shifts = False, s
 
         end = time.time()
         if shifts:
-            print('Generation: ', gen, 'Best fitness (makespan + penalty): ', min([ind.fitness.values[0] for ind in population]), 'Time elapsed: ', end - start)
+            print(
+                "Generation: ",
+                gen,
+                "Best fitness (makespan + penalty): ",
+                min([ind.fitness.values[0] for ind in population]),
+                "Time elapsed: ",
+                end - start,
+            )
         else:
-            print('Generation: ', gen, 'Best fitness (makespan): ', min([ind.fitness.values[0] for ind in population]), 'Time elapsed: ', end - start)
-        
-    
+            print(
+                "Generation: ",
+                gen,
+                "Best fitness (makespan): ",
+                min([ind.fitness.values[0] for ind in population]),
+                "Time elapsed: ",
+                end - start,
+            )
+
     # Step 6: Get the best individual
     best_individual = tools.selBest(population, 1)[0]
     best_fitness = best_individual.fitness.values
     if plot:
         if shifts:
-            print('Best fitness (makespan + shift constraint penalty): ', best_fitness[0])
+            print(
+                "Best fitness (makespan + shift constraint penalty): ", best_fitness[0]
+            )
         else:
-            print('Best fitness (makespan): ', best_fitness[0])
-        
-        df_results = decoder.get_dataframe_results(best_individual, params, shifts, seq_dep_setup)
-        plotting_ga.plot_gantt(df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup)
-    
+            print("Best fitness (makespan): ", best_fitness[0])
+
+        df_results = decoder.get_dataframe_results(
+            best_individual, params, shifts, seq_dep_setup
+        )
+        plotting_ga.plot_gantt(
+            df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup
+        )
+
     return best_fitness[0], best_individual
 
+
 def main():
-    #--------- PARAMETERS AND CONSTRAINTS (CHANGE FOR DIFFERENT SCENARIOS) ---------
+    # --------- PARAMETERS AND CONSTRAINTS (CHANGE FOR DIFFERENT SCENARIOS) ---------
     # contraints
-    shifts_constraint = False
+    shifts_constraint = True
     sequence_dependent = True
 
     # Parameters
-    n_machines = 5 # number of machines
-    n_jobs = 6 # number of jobs
-    n_lots = 5 # number of lots
-    seed = 4 # seed for random number generator
-    demand = {i:100 for i in range(0,n_jobs+1)} # demand of each job
+    n_machines = 3  # number of machines
+    n_jobs = 3  # number of jobs
+    n_lots = 3  # number of lots
+    seed = 4  # seed for random number generator
+    demand = {i: 50 for i in range(0, n_jobs + 1)}  # demand of each job
 
     # Create parameters object
-    my_params = params.JobShopRandomParams(n_machines=n_machines, n_jobs=n_jobs, n_lots=n_lots, seed=seed)
-    my_params.demand = demand # demand of each job
+    my_params = params.JobShopRandomParams(
+        n_machines=n_machines, n_jobs=n_jobs, n_lots=n_lots, seed=seed
+    )
+    my_params.demand = demand  # demand of each job
     my_params.printParams(sequence_dependent=sequence_dependent, save_to_excel=False)
-    
-    #--------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
+
+    # --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
     # Genetic algorithm
     start = time.time()
-    current_fitness, best_individual = lsjsp_ga(my_params, population_size=100, num_generations=100, shifts=shifts_constraint,seq_dep_setup=sequence_dependent, plot=True)
+    current_fitness, best_individual = lsjsp_ga(
+        my_params,
+        population_size=100,
+        num_generations=100,
+        shifts=shifts_constraint,
+        seq_dep_setup=sequence_dependent,
+        plot=True,
+    )
     end = time.time()
-    print('Time elapsed: ', end - start)
-    print('Current fitness: ', current_fitness)
+    print("Time elapsed: ", end - start)
+    print("Current fitness: ", current_fitness)
     if shifts_constraint:
-        makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(best_individual, my_params, shifts=shifts_constraint, seq_dep_setup=sequence_dependent)
-        print('Makespan: ', makespan)
-        print('Penalty: ', penalty)
+        makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(
+            best_individual,
+            my_params,
+            shifts=shifts_constraint,
+            seq_dep_setup=sequence_dependent,
+        )
+        print("Makespan: ", makespan)
+        print("Penalty: ", penalty)
         print(best_individual)
         print(chromosome_mod)
 
