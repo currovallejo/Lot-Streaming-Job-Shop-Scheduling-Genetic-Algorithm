@@ -11,6 +11,8 @@ Script: plotting.py - problem and solution plotting
 
 # --------- LIBRARIES ---------
 import plotly.express as px
+import matplotlib.pyplot as plt
+import numpy as np
 
 # --------- OTHER PYTHON FILES USED ---------
 
@@ -84,9 +86,6 @@ def plot_gantt(
             "Text": False,
             "Resources": False,
         },
-        # category_orders={'Machine': sorted(df['Machine'].unique())},
-        # labels={'y':'Machine', 'x':'Job'},
-        # range_x=[0,max(df['makespan'])]
     )
 
     # Set the X-axis type to 'linear'
@@ -103,16 +102,12 @@ def plot_gantt(
 
     # length of the setup bars
     df["delta_s"] = df["start_time"] - df["setup_start_time"]
-    # print(df['delta_s'])
 
     fig_s = px.timeline(
         df,
         x_start="setup_start_time",
         x_end="start_time",
         y="Resources",
-        # category_orders={'Machine': sorted(df['Machine'].unique())},
-        # labels={'y':'Machine', 'x':'Job'},
-        # range_x=[0,max(df['makespan'])]
     )
 
     # Set the X-axis type to 'linear'
@@ -138,3 +133,66 @@ def plot_gantt(
         file_name,
         auto_open=show,
     )
+
+
+# --------- PLOT SOLUTION EVOLUTION ---------
+def plot_solution_evolution(
+    fitness_scores, show=True, save=False, name="solution_evolution"
+):
+    generations = list(range(1, len(fitness_scores) + 1))
+    avg_fitness = [np.mean(scores) for scores in fitness_scores]
+    best_fitness = [np.min(scores) for scores in fitness_scores]
+
+    def plot_fitness(generations, fitness, label, color, marker, ylabel, title):
+        plt.figure()  # Use automatic figure size
+
+        # Plot the blue line connecting the points
+        plt.plot(generations, fitness, color='blue', label=label, linestyle='-')
+
+        # Plot the red points
+        plt.scatter(generations, fitness, color='red')
+
+        # Labeling and titles
+        plt.xlabel("Generaciones", fontsize=16)
+        plt.ylabel(ylabel, fontsize=16)
+        plt.title(title, fontsize=18)
+
+        # No grid
+        plt.grid(False)
+
+        # Legend
+        plt.legend(fontsize=14)
+
+        # # Custom ticks for x-axis
+        # plt.gca().xaxis.set_major_locator(MultipleLocator(100))
+        # plt.gca().xaxis.set_minor_locator(MultipleLocator(20))
+        # plt.gca().tick_params(axis="x", which="minor", length=4, width=1)
+        # plt.gca().tick_params(axis="x", which="major", length=7, width=1.5)
+
+        # Adjust layout
+        plt.tight_layout()
+
+        # Show or save plot
+        if show:
+            plt.show()
+        if save:
+            plt.savefig(f"{name}.png")
+
+    plot_fitness(
+        generations,
+        best_fitness,
+        "Mejor Fitness",
+        "tab:blue",
+        "o",
+        "Fitness",
+        "Evolución del Mejor Fitness",
+    )
+    # plot_fitness(
+    #     generations,
+    #     avg_fitness,
+    #     "Media Fitness",
+    #     "tab:red",
+    #     "x",
+    #     "Fitness Promedio",
+    #     "Evolución del Fitness Promedio",
+    # )

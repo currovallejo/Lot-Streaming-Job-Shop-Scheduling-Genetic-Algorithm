@@ -9,8 +9,9 @@ Script: chromosome-generator.py - generation of random chromosomes
 """
 
 # --------- LIBRARIES ---------
-import numpy as np
 import random
+import numpy as np
+
 
 # --------- OTHER PYTHON FILES USED ---------
 import params
@@ -30,23 +31,21 @@ def generate_chromosome(params):
         chromosome: numpy array with the chromosome
     """
     # Generate chromosome left-hand side
-    chromosome_lhs = []
+    chromosome_lhs = np.array([
+        random.random()
+        for job in params.jobs
+        for lot in params.lots
+    ])
 
-    for job in params.jobs:
-        for lot in params.lots:
-            chromosome_lhs.append(random.random())
+    # Generate chromosome right-hand side (sublots)
+    chromosome_rhs = [
+        (job, lot)
+        for job in params.jobs
+        for lot in params.lots
+        for machine in params.seq[job]
+    ]
 
-    chromosome_lhs = np.array(chromosome_lhs)
-
-    # Generate chromosome right-hand side
-    sublots = []
-    for j in params.jobs:
-        for u in params.lots:
-            for m in params.seq[j]:
-                sublots.append((j, u))
-
-    random.shuffle(sublots)
-    chromosome_rhs = sublots
+    random.shuffle(chromosome_rhs)
 
     # Concatenate both sides
     chromosome = [chromosome_lhs, chromosome_rhs]
@@ -56,6 +55,8 @@ def generate_chromosome(params):
 
 # --------- MAIN ---------
 def main():
+    """Working example of the chromosome generator"""
+
     my_random_params = params.JobShopRandomParams(
         n_machines=3, n_jobs=3, n_lots=3, seed=4
     )

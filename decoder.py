@@ -65,8 +65,8 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
                             break
             
             else:
-                chromosome_lhs_m[n_lots*job:n_lots*(job+1)] = int(params.demand[job]) / len(chromosome_lhs_m[job])
-                chromosome_lhs_m[n_lots*job+n_lots-1] = (params.demand[job]) - sum(chromosome_lhs_m[job][:-1])
+                chromosome_lhs_m[n_lots*job:n_lots*(job+1)] = int(params.demand[job]) / n_lots
+                chromosome_lhs_m[n_lots*job+n_lots-1] = (params.demand[job]) - sum(chromosome_lhs_m[n_lots*job:n_lots*(job)])
         
         return chromosome_lhs_m
     
@@ -200,9 +200,9 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
         chromosome_lhs_m = distribute_demand()
     else:
         chromosome_lhs_m = np.copy(chromosome_lhs)
-    
+
     chromosome_mod = [chromosome_lhs_m, chromosome_rhs]
-    
+
 
     # Do a dictionary to track route of each lot
     routes = {
@@ -245,24 +245,24 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
                 c[current_machine, current_job, current_lot] = y[current_machine, current_job, current_lot] + params.sd_setup[current_machine, current_job+1, precedences[current_machine][-1][0]+1] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
             else:
                 c[current_machine, current_job, current_lot] = y[current_machine, current_job, current_lot] + params.setup[current_machine, current_job] + params.p_times[current_machine, current_job]*chromosome_lhs_m[n_lots*current_job + current_lot]
-        
+
             # Update makespan
             if c[current_machine, current_job, current_lot] > makespan:
                 makespan = c[current_machine, current_job, current_lot]
-            
+
             if is_big_lotsize():
                 lot_penalty = c[current_machine, current_job, current_lot] % params.shift_time
                 if lot_penalty > max_lot_penalty:
                     max_lot_penalty = lot_penalty
                     penalty = penalty_coefficient*max_lot_penalty
-                    
+
 
             # Update precedences
             precedences[current_machine].append((current_job, current_lot))
 
             # Update lot route
             routes[(current_job, current_lot)].pop(0)
-    
+
     return makespan, penalty, y, c, chromosome_mod
 
 def get_chromosome_start_times(chromosome_mod, params, c):
@@ -284,12 +284,12 @@ def get_chromosome_start_times(chromosome_mod, params, c):
                 for j in range(n_jobs)
                 for u in range(n_lots)
             }
-    
+
     x = np.full((n_machines, n_jobs, n_lots), 0) # start time
     for m,j,u in triple_mju:
         if c[m,j,u]>0:
             x[m,j,u] = c[m,j,u] - params.p_times[m,j]*chromosome_lhs_m[n_lots*j+u]
-    
+
     return x
 
 def build_chromosome_results_df(chromosome_mod, y, x, c):
