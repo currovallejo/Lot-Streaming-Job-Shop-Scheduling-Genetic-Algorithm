@@ -18,6 +18,7 @@ Set of modules for solving the lot streaming job shop scheduling problem through
 - genetic_operators.py | cross-over and mutation operators
 - genetic_algorithm.py | genetic algorithm and main script
 - plot.py | plotting of Gantt chart with plotly express timeline
+- *name_OOP.py files decrease GA performance, therefore are not taken into account*
 ![alt text](image.png)
 |:--:| 
 | *Architecture of the Program. main.py not implemented, used instead main() in genetic_algorithm.py* |
