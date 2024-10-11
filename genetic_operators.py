@@ -153,7 +153,8 @@ def cxJobLevel(ind1, ind2):
             child1[child1_index] = gene
             child1_index += 1
 
-    # Step 4: Repeat the process for child 2, but choose the job from parent 2 and fill the rest with operations from parent 1
+    # Step 4: Repeat the process for child 2, but choose the job from parent 2 and fill
+    # the rest with operations from parent 1
     chosen_job2 = random.choice([gene[0] for gene in ind2])
     child2 = [None] * len(ind2)
     for i, gene in enumerate(ind2):
@@ -251,8 +252,32 @@ def mutShuffleIndexes_mod(individual):
 def main():
 
     # Example usage cxJobLevel
-    parent1 = [(1, 1), (2, 1), (1, 2), (3, 1), (2, 2), (1, 1), (1, 1), (2, 1), (1, 2), (3, 1), (2, 2)]
-    parent2 = [(2, 1), (1, 1), (3, 1), (1, 2), (2, 1), (1, 2), (3, 1), (2, 2), (2, 2), (1, 1), (1, 1)]
+    parent1 = [
+        (1, 1),
+        (2, 1),
+        (1, 2),
+        (3, 1),
+        (2, 2),
+        (1, 1),
+        (1, 1),
+        (2, 1),
+        (1, 2),
+        (3, 1),
+        (2, 2),
+    ]
+    parent2 = [
+        (2, 1),
+        (1, 1),
+        (3, 1),
+        (1, 2),
+        (2, 1),
+        (1, 2),
+        (3, 1),
+        (2, 2),
+        (2, 2),
+        (1, 1),
+        (1, 1),
+    ]
 
     child1, child2 = cxJobLevel(parent1, parent2)
     print("Parent 1:", parent1)

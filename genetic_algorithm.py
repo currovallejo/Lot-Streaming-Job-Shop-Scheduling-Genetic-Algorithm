@@ -17,7 +17,7 @@ import time
 import chromosome_generator
 import params
 import decoder
-import plotting_ga
+import plot
 import copy
 from genetic_operators import *
 
@@ -90,6 +90,7 @@ def mutShuffleIndexes_rhs(individual):
     new_ind[1] = new_rhs
     return new_ind
 
+
 # --------- GENETIC ALGORITHM ---------
 
 
@@ -100,13 +101,13 @@ def create_individual_factory(params):
     return create_individual
 
 
-def lsjsp_ga(
+def run(
     params,
     population_size: int,
     num_generations: int,
     shifts=False,
     seq_dep_setup=False,
-    plot=True,
+    plotting=True,
 ):
     """
     Genetic algorithm for LSJSP problem developed with DEAP package
@@ -117,7 +118,7 @@ def lsjsp_ga(
         num_generations: number of generations
         shifts: boolean, True if shifts are considered
         seq_dep_setup: boolean, True if sequence dependent setup times are considered
-        plot: boolean, True if Gantt chart is plotted
+        plotting: boolean, True if Gantt chart is plotted
 
     Returns:
         best_makespan: best fitness value found
@@ -200,19 +201,13 @@ def lsjsp_ga(
     # Diversification threshold for population diversity
     diversification_threshold = 10  # 30 generations without improvement
     no_improvement_generations = 0
-    best_fitness = float('inf')  # tracking
+    best_fitness = float("inf")  # tracking
 
     for gen in range(num_generations):
         start = time.time()
         # Select the next generation individuals
-        start_selection = time.time()
         offspring = toolbox.select(population, len(population))
-        end_selection = time.time()
-        print(
-            "Selection with tournament of size 3 done in ",
-            end_selection - start_selection,
-            " seconds",
-        )
+
         # Clone the selected individuals
         offspring = list(map(toolbox.clone, offspring))
 
@@ -295,14 +290,21 @@ def lsjsp_ga(
         # Diversification step
         if no_improvement_generations >= diversification_threshold:
             diversification_threshold += 10
-            print("\n+++++++++++++++\nDiversification triggered at generation", gen, "new diversification threshold:", diversification_threshold, "\n+++++++++++++++\n")
+            print(
+                "\n+++++++++++++++\nDiversification triggered at generation",
+                gen,
+                "new diversification threshold:",
+                diversification_threshold,
+                "\n+++++++++++++++\n",
+            )
             # Delete half of the population
             half_population_size = len(population) // 2
             population = sorted(population, key=lambda ind: ind.fitness.values[0])
             population = population[:half_population_size]
             # Introduce new random solutions
-            new_individuals = toolbox.population(n=population_size -
-                                                 half_population_size)
+            new_individuals = toolbox.population(
+                n=population_size - half_population_size
+            )
             population.extend(new_individuals)
             no_improvement_generations = 0
 
@@ -312,20 +314,16 @@ def lsjsp_ga(
     # Step 6: Get the best individual
     best_individual = tools.selBest(population, 1)[0]
 
-    if plot:
+    if plotting:
         if shifts:
-            print(
-                "Best fitness (makespan + shift constraint penalty): ", best_fitness
-            )
+            print("Best fitness (makespan + shift constraint penalty): ", best_fitness)
         else:
             print("Best fitness (makespan): ", best_fitness)
 
         df_results = decoder.get_dataframe_results(
             best_individual, params, shifts, seq_dep_setup
         )
-        plotting_ga.plot_gantt(
-            df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup
-        )
+        plot.gantt(df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup)
 
     return best_fitness, best_individual
 
@@ -337,10 +335,10 @@ def main():
     sequence_dependent = True
 
     # Parameters
-    n_machines = 4  # number of machines
-    n_jobs = 6  # number of jobs
-    n_lots = 6  # number of lots
-    seed = 7  # seed for random number generator
+    n_machines = 3  # number of machines
+    n_jobs = 3  # number of jobs
+    n_lots = 4  # number of lots
+    seed = 4  # seed for random number generator
     demand = {i: 100 for i in range(0, n_jobs + 1)}  # demand of each job
 
     # Create parameters object
@@ -353,13 +351,13 @@ def main():
     # --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
     # Genetic algorithm
     start = time.time()
-    current_fitness, best_individual = lsjsp_ga(
+    current_fitness, best_individual = run(
         my_params,
         population_size=100,
-        num_generations=200,
+        num_generations=50,
         shifts=shifts_constraint,
         seq_dep_setup=sequence_dependent,
-        plot=True,
+        plotting=True,
     )
     end = time.time()
     print("Time elapsed: ", end - start, "seconds")
