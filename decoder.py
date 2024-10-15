@@ -282,7 +282,7 @@ def decode_chromosome(chromosome, params, shifts=False, seq_dep_setup=False):
     chromosome_rhs = chromosome[1]
 
     # decode left hand side of the chromosome if it is a float
-    if chromosome_lhs[0] is np.float64:
+    if type(chromosome_lhs[0]) is np.float64:
         chromosome_lhs_m = distribute_demand()
     else:
         chromosome_lhs_m = np.copy(chromosome_lhs)

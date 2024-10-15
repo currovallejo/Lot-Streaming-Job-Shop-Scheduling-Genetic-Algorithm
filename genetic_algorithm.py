@@ -198,6 +198,7 @@ def run(
     # Probabilities for genetic operators
     SPC1, SPC2, PMX, OX, JL = 0.8, 0.8, 0.8, 0.8, 0.8
     SSTM, MSI = 0.2, 0.2
+  
     # Diversification threshold for population diversity
     diversification_threshold = 10  # 30 generations without improvement
     no_improvement_generations = 0
@@ -284,12 +285,16 @@ def run(
         if current_best_fitness < best_fitness:
             best_fitness = current_best_fitness
             no_improvement_generations = 0
+            SSTM, MSI = 0.2, 0.2
         else:
             no_improvement_generations += 1
+            if SSTM < 0.8:
+                SSTM = SSTM * 1.05
+                MSI = MSI * 1.05
 
         # Diversification step
         if no_improvement_generations >= diversification_threshold:
-            diversification_threshold += 10
+            diversification_threshold += 5
             print(
                 "\n+++++++++++++++\nDiversification triggered at generation",
                 gen,
@@ -337,9 +342,9 @@ def main():
     # Parameters
     n_machines = 3  # number of machines
     n_jobs = 3  # number of jobs
-    n_lots = 4  # number of lots
-    seed = 4  # seed for random number generator
-    demand = {i: 100 for i in range(0, n_jobs + 1)}  # demand of each job
+    n_lots = 2  # number of lots
+    seed = 5  # seed for random number generator
+    demand = {i: 50 for i in range(0, n_jobs + 1)}  # demand of each job
 
     # Create parameters object
     my_params = params.JobShopRandomParams(
