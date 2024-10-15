@@ -19,7 +19,8 @@ Set of modules for solving the lot streaming job shop scheduling problem through
 - genetic_algorithm.py | genetic algorithm and main script
 - plot.py | plotting of Gantt chart with plotly express timeline
 - *name_OOP.py files decrease GA performance, therefore are not taken into account*
-![image](https://github.com/user-attachments/assets/f9e0ca7b-86eb-45be-9b40-b7a13ec43e48)
+
+| ![image](https://github.com/user-attachments/assets/f9e0ca7b-86eb-45be-9b40-b7a13ec43e48) |
 |:--:| 
 | *Architecture of the Program. main.py not implemented, used instead main() in genetic_algorithm.py* |
 
