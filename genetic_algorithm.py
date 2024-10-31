@@ -198,11 +198,12 @@ def run(
     # Probabilities for genetic operators
     SPC1, SPC2, PMX, OX, JL = 0.8, 0.8, 0.8, 0.8, 0.8
     SSTM, MSI = 0.2, 0.2
-  
+
     # Diversification threshold for population diversity
     diversification_threshold = 10  # 30 generations without improvement
     no_improvement_generations = 0
     best_fitness = float("inf")  # tracking
+    results_dataframes = []
 
     for gen in range(num_generations):
         start = time.time()
@@ -286,6 +287,13 @@ def run(
             best_fitness = current_best_fitness
             no_improvement_generations = 0
             SSTM, MSI = 0.2, 0.2
+
+            best_individual = tools.selBest(population, 1)[0]
+            df_results = decoder.get_dataframe_results(
+                best_individual, params, shifts, seq_dep_setup
+            )
+            results_dataframes.append(df_results)
+
         else:
             no_improvement_generations += 1
             if SSTM < 0.8:
@@ -330,7 +338,7 @@ def run(
         )
         plot.gantt(df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup)
 
-    return best_fitness, best_individual
+    return best_fitness, best_individual, results_dataframes
 
 
 def main():
@@ -340,11 +348,11 @@ def main():
     sequence_dependent = True
 
     # Parameters
-    n_machines = 3  # number of machines
-    n_jobs = 3  # number of jobs
-    n_lots = 2  # number of lots
-    seed = 5  # seed for random number generator
-    demand = {i: 50 for i in range(0, n_jobs + 1)}  # demand of each job
+    n_machines = 5  # number of machines
+    n_jobs = 5  # number of jobs
+    n_lots = 5  # number of lots
+    seed = 6  # seed for random number generator
+    demand = {i: 100 for i in range(0, n_jobs + 1)}  # demand of each job
 
     # Create parameters object
     my_params = params.JobShopRandomParams(
@@ -356,17 +364,20 @@ def main():
     # --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
     # Genetic algorithm
     start = time.time()
-    current_fitness, best_individual = run(
+    current_fitness, best_individual, results_dataframes = run(
         my_params,
-        population_size=100,
-        num_generations=50,
+        population_size=150,
+        num_generations=300,
         shifts=shifts_constraint,
         seq_dep_setup=sequence_dependent,
-        plotting=True,
+        plotting=False,
     )
     end = time.time()
     print("Time elapsed: ", end - start, "seconds")
     print("Current fitness: ", current_fitness)
+
+    plot.generate_gif2(results_dataframes, filename='gantt3.gif', fps=20)
+
     if shifts_constraint:
         makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(
             best_individual,

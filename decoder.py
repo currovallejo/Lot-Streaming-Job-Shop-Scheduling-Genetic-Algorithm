@@ -492,7 +492,8 @@ def main():
     # Generate Job Shop Random Parameters
     my_params = params.JobShopRandomParams(n_machines=3, n_jobs=3, n_lots=3, seed=4)
     my_params.printParams(sequence_dependent=True)
-    demand = {i: 100 for i in range(0, 11)}
+    demand = {i: 150 for i in range(0, 11)}
+    my_params.demand = demand
 
     # Example chromosome (could be random generated but for testing purposes is fixed)
     chromosome = [
@@ -548,7 +549,7 @@ def main():
     df_results = build_chromosome_results_df(chromosome_mod, y, x, c)
 
     # Plot gantt
-    plot.gantt(df_results, my_params, demand)
+    plot.plot_bars(df_results, my_params, show=True, save=False)
     print("nice job")
 
 
