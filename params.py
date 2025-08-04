@@ -3,11 +3,7 @@ DEFINITION OF CLASSES TO HANDLE JOBSHOP PARAMETERS
 ----------------------------------------------------------------------
 - Classes, methods and functions are defined to facilitate the handling of jobshop
 parameters in the script where the model is defined.
-
-- Two functions are included
-    - JobShopRandomParams.save_to_json to export the instance parameters to a .json
-    file.
-    - job_params_from_json to get the parameters of the problem from a .json file
+- Original code by: Bruno Scalia C. F. Leite
 """
 
 import numpy as np
@@ -15,6 +11,8 @@ from typing import Iterable
 import json
 import pandas as pd
 import os
+import yaml
+from pathlib import Path
 
 
 def custom_serializer(obj):
@@ -67,7 +65,6 @@ class JobShopParams:
         p_times: dict,
         seq: dict,
         setup: dict,
-        sd_setup: dict,
         lots: Iterable,
     ):
         """White label class for job-shop parameters
@@ -94,55 +91,65 @@ class JobShopParams:
         self.p_times = p_times
         self.seq = seq
         self.setup = setup
-        self.sd_setup = sd_setup
         self.lots = lots
 
 
 class JobShopRandomParams(JobShopParams):
 
-    def __init__(
-        self,
-        n_machines: int,
-        n_jobs: int,
-        n_lots: int,
-        t_span=(1, 20),
-        seed=None,
-        t_span_setup=(50, 100),
-    ):
-        """Class for generating job-shop parameters
+    def __init__(self, config_path: str = "config/jobshop_config.yaml"):
+        """Class for generating job-shop parameters from YAML config
 
         Parameters
         ----------
-        n_machines : int
-            Number of machines
-
-        n_jobs : int
-            Number of jobs
-
-        t_span : tuple, optional
-            Processing times range, by default (1, 20)
-
-        seed : int | None, optional
-            numpy random seed, by default None
+        config_path : str, optional
+            Path to YAML configuration file, by default "config/jobshop_config.yaml"
         """
-        self.t_span = t_span
-        self.seed = seed
-        self.t_span_setup = t_span_setup
+        config = self._load_config(config_path)
 
+        # Extract high-level parameters from config
+        n_machines = config["job_shop"]["n_machines"]
+        n_jobs = config["job_shop"]["n_jobs"]
+        n_lots = config["job_shop"]["n_lots"]
+
+        self.n_machines = n_machines
+        self.n_jobs = n_jobs
+        self.n_lots = n_lots
+        self.t_span = tuple(config["processing_times"]["t_span"])
+        self.seed = config["random"]["seed"]
+        self.t_span_setup = tuple(config["setup_times"]["t_span_setup"])
+        self.is_setup_dependent = config["setup_times"]["setup_mode"] == "dependent"
+        self.shift_constraints = config["shift"]["shift_constraint"]
+
+        # Generate random job-shop data
         machines = np.arange(n_machines, dtype=int)
         jobs = np.arange(n_jobs)
-        p_times = self._random_times(machines, jobs, t_span)
+        p_times = self._random_times(machines, jobs, self.t_span)
         lots = np.arange(n_lots, dtype=int)
         seq = self._random_sequences(machines, jobs)
-        setup = self._random_setup(machines, jobs, t_span_setup)
-        sd_setup = self._random_setup_sd(machines, jobs, t_span_setup)
-        super().__init__(machines, jobs, p_times, seq, setup, sd_setup, lots)
+        setup = self._random_setup(machines, jobs, self.t_span_setup)
 
-        # Non random parameters
-        self.demand = {i: 50 for i in range(0, n_jobs + 1)}
-        self.shift_time = 480  # 8 hours in minutes
+        super().__init__(machines, jobs, p_times, seq, setup, lots)
+
+        # Non random parameters from config
+        self.demand = {
+            i: config["fixed_params"]["demand_per_job"] for i in range(0, n_jobs + 1)
+        }
+        self.shift_time = config["shift"]["shift_time"]
+
+    def _load_config(self, config_path: str) -> dict:
+        """Load configuration from YAML file"""
+
+        script_dir = Path(__file__).parent
+        os.chdir(script_dir)
+        config_file = script_dir / config_path
+        if not config_file.exists():
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+
+        with open(config_file, "r") as file:
+            return yaml.safe_load(file)
 
     def _random_times(self, machines, jobs, t_span):
+        """Generates random processing times for each job on each machine."""
         np.random.seed(self.seed)
         t = np.arange(t_span[0], t_span[1])
         return {(m, j): np.random.choice(t) for m in machines for j in jobs}
@@ -152,6 +159,7 @@ class JobShopRandomParams(JobShopParams):
         return {j: self._generate_random_sequence(machines) for j in jobs}
 
     def _generate_random_sequence(self, machines):
+        """Generates a random sequence (route) of machines for a job."""
         # Decide on the length of the sequence
         # (can be any number between 1 and len(machines))
         sequence_length = np.random.randint(1, len(machines) + 1)
@@ -162,16 +170,19 @@ class JobShopRandomParams(JobShopParams):
 
         return JobSequence(sequence)
 
-    def _random_setup(
-        self, machines, jobs, t_span_setup
-    ):  # sequence independent setup times
-        np.random.seed(self.seed)
-        t = np.arange(
-            t_span_setup[0], t_span_setup[1]
-        )  # meto en un vector todos los tiempos posibles
-        return {(m, j): np.random.choice(t) for m in machines for j in jobs}
+    def _random_setup(self, machines, jobs, t_span_setup):
+        """Generates random setup times for each job on each machine."""
+        if self.is_setup_dependent:
+            return self._random_sequence_dependent_setup(machines, jobs, t_span_setup)
+        else:
+            # sequence independent setup times
+            np.random.seed(self.seed)
+            t = np.arange(
+                t_span_setup[0], t_span_setup[1]
+            )  # meto en un vector todos los tiempos posibles
+            return {(m, j): np.random.choice(t) for m in machines for j in jobs}
 
-    def _random_setup_sd(
+    def _random_sequence_dependent_setup(
         self, machines, jobs, t_span_setup
     ):  # sequence dependent setup times
         """
@@ -205,11 +216,30 @@ class JobShopRandomParams(JobShopParams):
 
         return sd_setup_times
 
-    def printParams(self, sequence_dependent=False, save_to_excel=False):
+    def print_jobshop_params(self, save_to_excel=False):
+        """Prints the parameters of the job-shop problem"""
+        print("Job-Shop Parameters:")
+        self._print_params_machines()
+        self._print_params_jobs()
+        self._print_params_lots()
+        self._print_params_demand()
+        self._print_params_setup_times()
+        self._print_params_processing_times()
+        self._print_params_sequence()
+
+    def _print_params_machines(self):
         print("[MACHINES]: \n", self.machines, "\n")
+
+    def _print_params_jobs(self):
         print("[JOBS]: \n", self.jobs, "\n")
+
+    def _print_params_lots(self):
         print("[BATCHES]: \n", self.lots, "\n")
+
+    def _print_params_demand(self):
         print("[DEMAND]: \n", self.demand, "\n")
+
+    def _print_params_processing_times(self):
         print(
             "[PROCESS TIMES]the working time associated with each job on each machine is:"
         )
@@ -231,65 +261,64 @@ class JobShopRandomParams(JobShopParams):
         jobs = [f"Job {i}" for i in range(max_job + 1)]
         machines = [f"Machine {j}" for j in range(max_machine + 1)]
 
-        processTimes_df = pd.DataFrame(transposed_matrix, columns=jobs, index=machines)
-
         # Print the DataFrame
-        print(processTimes_df, "\n")
+        print(pd.DataFrame(transposed_matrix, columns=jobs, index=machines), "\n")
 
-        if sequence_dependent:
-            print(
-                "[SEQ DEPENDENT SETUP TIMES] row(k) = predecessor | column(j) = successor  \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in sd_setup dictionary is j=1 (successor) or k=1 (predecessor) \n the setup time associated with each job on each machine is:"
-            )
-            for m in self.machines:
-                print("Machine ", m)
-                n_columns = len(self.jobs)
-                n_rows = len(self.jobs) + 1
-                matrix = np.zeros((n_rows, n_columns), dtype=int)
-                for key, value in self.sd_setup.items():
-                    if key[0] == m:
-                        if key[1] != 0 and key[1] != self.jobs[-1] + 2:
-                            if key[2] != self.jobs[-1] + 2:
-                                matrix[key[2]][key[1] - 1] = value
-
-                # Create a DataFrame with row and column labels
-                setup_jobs = [
-                    f"Job {i}" for i in range(n_columns)
-                ]  # columns are successors jobs
-                precedence_jobs = [
-                    f"Job {j-1}" for j in range(n_rows)
-                ]  # rows are predecessors jobs
-
-                setupTimes_df = pd.DataFrame(
-                    matrix, columns=setup_jobs, index=precedence_jobs
-                )
-
-                # Print the DataFrame
-                print(setupTimes_df, "\n")
-
+    def _print_params_setup_times(self):
+        if self.is_setup_dependent:
+            self._print_params_sequence_dependent_setup_times()
         else:
-            print(
-                "[SEQ INDEPENDENT SETUP TIMES] the setup time associated with each job on each machine is:"
-            )
-            # Determine the dimensions of the matrix
-            max_job = max(key[1] for key in self.setup.keys())
-            max_machine = max(key[0] for key in self.setup.keys())
+            self._print_params_sequence_independent_setup_times()
 
-            # Create an empty matrix filled with zeros
-            matrix = np.zeros((max_machine + 1, max_job + 1), dtype=int)
-
-            # Fill the matrix with the given data
+    def _print_params_sequence_dependent_setup_times(self):
+        print(
+            "[SEQ DEPENDENT SETUP TIMES] row(k) = predecessor | column(j) = successor  \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in setup dictionary is j=1 (successor) or k=1 (predecessor) \n the setup time associated with each job on each machine is:"
+        )
+        for m in self.machines:
+            print("Machine ", m)
+            n_columns = len(self.jobs)
+            n_rows = len(self.jobs) + 1
+            matrix = np.zeros((n_rows, n_columns), dtype=int)
             for key, value in self.setup.items():
-                matrix[key[0]][key[1]] = value
+                if key[0] == m:
+                    if key[1] != 0 and key[1] != self.jobs[-1] + 2:
+                        if key[2] != self.jobs[-1] + 2:
+                            matrix[key[2]][key[1] - 1] = value
 
             # Create a DataFrame with row and column labels
-            jobs = [f"Job {i}" for i in range(max_job + 1)]
-            machines = [f"Machine {j}" for j in range(max_machine + 1)]
-
-            setupTimes_df = pd.DataFrame(matrix, columns=jobs, index=machines)
+            setup_jobs = [
+                f"Job {i}" for i in range(n_columns)
+            ]  # columns are successors jobs
+            precedence_jobs = [
+                f"Job {j-1}" for j in range(n_rows)
+            ]  # rows are predecessors jobs
 
             # Print the DataFrame
-            print(setupTimes_df, "\n")
+            print(pd.DataFrame(matrix, columns=setup_jobs, index=precedence_jobs), "\n")
 
+    def _print_params_sequence_independent_setup_times(self):
+        print(
+            "[SEQ INDEPENDENT SETUP TIMES] the setup time associated with each job on each machine is:"
+        )
+        # Determine the dimensions of the matrix
+        max_job = max(key[1] for key in self.setup.keys())
+        max_machine = max(key[0] for key in self.setup.keys())
+
+        # Create an empty matrix filled with zeros
+        matrix = np.zeros((max_machine + 1, max_job + 1), dtype=int)
+
+        # Fill the matrix with the given data
+        for key, value in self.setup.items():
+            matrix[key[0]][key[1]] = value
+
+        # Create a DataFrame with row and column labels
+        jobs = [f"Job {i}" for i in range(max_job + 1)]
+        machines = [f"Machine {j}" for j in range(max_machine + 1)]
+
+        # Print the DataFrame
+        print(pd.DataFrame(matrix, columns=jobs, index=machines), "\n")
+
+    def _print_params_sequence(self):
         print("[SEQ] the sequence for each job is: ")
 
         trabajo_list = []
@@ -299,131 +328,7 @@ class JobShopRandomParams(JobShopParams):
             trabajo_list.append(trabajo)
             seq_list.append(self.seq[trabajo])
 
-        seq_df = pd.DataFrame({"trabajo": trabajo_list, "seq": seq_list})
 
-        # save into an excel
-        if save_to_excel:
-            # combine all dataframes
-            combined_df = pd.concat([processTimes_df, setupTimes_df, seq_df], axis=1)
-
-            # File path
-            (
-                n_machines,
-                n_jobs,
-                maxlots,
-                seed,
-            ) = (
-                len(self.machines),
-                len(self.jobs),
-                len(self.lots),
-                self.seed,
-            )
-            file_path = f"v5_m{n_machines}_j{n_jobs}_u{maxlots}_s{seed}_data.xlsx"
-            # Save to excel
-            combined_df.to_excel(file_path, index=False, sheet_name="Sheet1")
-
-    def to_dict(self):
-        """Convert class attributes to dictionary"""
-        return {
-            "machines": self.machines.astype(int).tolist(),
-            "jobs": self.jobs.astype(int).tolist(),
-            "lots": self.lots.astype(int).tolist(),
-            "seed": self.seed,
-            "seq": self.seq,
-            "p_times": self.p_times,
-            "setup": self.setup,
-            "t_span": self.t_span,
-            "t_span_setup": self.t_span_setup,
-        }
-
-    def patch_dict(self):
-        data = self.to_dict()
-
-        """patch seq"""
-        # Create a list of keys to iterate over
-        keys_to_update = list(data["seq"].keys())
-
-        for key in keys_to_update:
-            # Update the key
-            new_key = int(key)
-            for i, j in enumerate(data["seq"][key]):
-                new_j = int(j)
-                data["seq"][key][i] = new_j
-
-            # Update the dictionary with the new key
-            data["seq"][new_key] = data["seq"].pop(key)
-
-        """patch p_times"""
-        keys_to_update = list(
-            data["p_times"].keys()
-        )  # Create a list of keys to avoid modification during iteration
-        for key in keys_to_update:
-            new_key = str(key)
-            data["p_times"][new_key] = int(data["p_times"].pop(key))
-
-        """patch setup"""
-        keys_to_update = list(data["setup"].keys())
-        for key in keys_to_update:
-            new_key = str(key)
-            data["setup"][new_key] = int(data["setup"].pop(key))
-
-        return data
-
-    def save_to_json(self, filename, data):
-        with open(filename, "w") as file:
-            file.write(json.dumps(data, indent=2, default=custom_serializer))
-
-
-def convert_keys_to_tuples(dictionary):
-    return {
-        tuple(int(k) for k in key[1:-1].split(", ")): value
-        for key, value in dictionary.items()
-    }
-
-
-def convert_keys_to_integers(dictionary):
-    return {int(key): value for key, value in dictionary.items()}
-
-
-def job_params_from_json(filename: str):
-    """Returns a JobShopParams instance from a json file containing
-    - 'machines': list with index of machines
-    - 'jobs: list with index of jobs
-    - 'lots': list with index of lots
-    - 'seed': seed used to generate parameters
-    - 'seq': sequence of each job
-    - 'p_times': unitary processing times of each job in each machine
-    - 'setup': setup time of each job in each machine
-
-    Parameters
-    ----------
-    filename : str
-        Filename of json
-
-    Returns
-    -------
-    JobShopParams
-        Parameters of problem
-    """
-    # get the json path providing its name (respect relative position)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(script_dir)
-    json_file_path = os.path.join(parent_dir, "instances", filename)
-
-    # open json and convert str to dictionary
-    with open(json_file_path, "r") as file:
-        json_data = file.read()
-    data = json.loads(json_data)
-
-    # get parameters from data dict
-    machines = data["machines"]
-    jobs = data["jobs"]
-    lots = data["lots"]
-    seq = data["seq"]
-    seq = convert_keys_to_integers(seq)
-    p_times = data["p_times"]
-    p_times = convert_keys_to_tuples(p_times)
-    setup = data["setup"]
-    setup = convert_keys_to_tuples(setup)
-
-    return JobShopParams(machines, jobs, p_times, seq, setup, lots)
+if __name__ == "__main__":
+    params = JobShopRandomParams(config_path="config/jobshop/js_params_01.yaml")
+    params.print_jobshop_params()

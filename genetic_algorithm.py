@@ -102,11 +102,9 @@ def create_individual_factory(params):
 
 
 def run(
-    params,
+    params: params.JobShopRandomParams,
     population_size: int,
     num_generations: int,
-    shifts=False,
-    seq_dep_setup=False,
     plotting=True,
 ):
     """
@@ -127,10 +125,11 @@ def run(
 
     # --------- DEAP SETUP ---------
     # Step 1: Define the fitness function
-    def evalFitness(individual, params, shifts, seq_dep_setup):
-        decoded_chromosome = decoder.decode_chromosome(
-            individual, params, shifts, seq_dep_setup
-        )
+    shifts = params.shift_constraints
+    seq_dep_setup = params.is_setup_dependent
+
+    def evalFitness(individual, params):
+        decoded_chromosome = decoder.decode_chromosome(individual, params)
         fitness = decoded_chromosome[0]  # makespan
 
         if shifts:
@@ -174,13 +173,7 @@ def run(
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Evaluation
-    toolbox.register(
-        "evaluate",
-        evalFitness,
-        params=params,
-        shifts=shifts,
-        seq_dep_setup=seq_dep_setup,
-    )
+    toolbox.register("evaluate", evalFitness, params=params)
 
     # Step 4: Create the population
     start_population = time.time()
@@ -198,7 +191,7 @@ def run(
     # Probabilities for genetic operators
     SPC1, SPC2, PMX, OX, JL = 0.8, 0.8, 0.8, 0.8, 0.8
     SSTM, MSI = 0.2, 0.2
-  
+
     # Diversification threshold for population diversity
     diversification_threshold = 10  # 30 generations without improvement
     no_improvement_generations = 0
@@ -342,16 +335,16 @@ def main():
     # Parameters
     n_machines = 3  # number of machines
     n_jobs = 3  # number of jobs
-    n_lots = 2  # number of lots
+    n_lots = 3  # number of lots
     seed = 5  # seed for random number generator
     demand = {i: 50 for i in range(0, n_jobs + 1)}  # demand of each job
 
     # Create parameters object
     my_params = params.JobShopRandomParams(
-        n_machines=n_machines, n_jobs=n_jobs, n_lots=n_lots, seed=seed
+        config_path="config/jobshop/js_params_01.yaml"
     )
     my_params.demand = demand  # demand of each job
-    my_params.printParams(sequence_dependent=sequence_dependent, save_to_excel=False)
+    my_params.print_jobshop_params(save_to_excel=False)
 
     # --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
     # Genetic algorithm
@@ -359,20 +352,15 @@ def main():
     current_fitness, best_individual = run(
         my_params,
         population_size=100,
-        num_generations=50,
-        shifts=shifts_constraint,
-        seq_dep_setup=sequence_dependent,
+        num_generations=100,
         plotting=True,
     )
     end = time.time()
     print("Time elapsed: ", end - start, "seconds")
     print("Current fitness: ", current_fitness)
-    if shifts_constraint:
+    if my_params.shift_constraints:
         makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(
-            best_individual,
-            my_params,
-            shifts=shifts_constraint,
-            seq_dep_setup=sequence_dependent,
+            best_individual, my_params
         )
         print("Makespan: ", makespan)
         print("Penalty: ", penalty)
