@@ -86,7 +86,12 @@ class JobShopDecoder(SolutionDecoder):
             encoded_solution: Encoded solution (chromosome)
 
         Returns:
-            Tuple containing setup start times, lots start times and completion times.
+            Tuple containing
+            - makespan (int): The total time to complete all jobs
+            - penalty (int): Penalty for shift constraints
+            - start_time (np.ndarray): SETUP Start times of each lot on each machine
+            - completion_time (np.ndarray): Completion times of each lot on each machine
+            - semi_encoded_solution (List[np.ndarray]): Semi-encoded solution containing lot sizes and lot sequence
         """
 
         # helpers
@@ -230,7 +235,7 @@ class JobShopDecoder(SolutionDecoder):
             """
             Calculate the completion time of the lot in the current machine with setup independent times.
             """
-            completion_time[current_machine, current_job, current_lot] = (
+            return (
                 start_time[current_machine, current_job, current_lot]
                 + s_times[current_machine, current_job]
                 + p_times[current_machine, current_job]
@@ -410,12 +415,12 @@ class JobShopDecoder(SolutionDecoder):
         start_time = np.full((n_machines, n_jobs, n_lots), 0)
         completion_time = np.full((n_machines, n_jobs, n_lots), 0)
         makespan = 0
+        penalty = 0
 
         # set penalty for shift constraints (lot sizes bigger than shift time)
         if is_shift_constraints:
             penalty_coefficient = 1e2
             max_lot_penalty = 0
-            penalty = 0
 
         # decode logic
         for i, job_lot in enumerate(lot_sequence):  # For each lot
@@ -441,7 +446,7 @@ class JobShopDecoder(SolutionDecoder):
                     completion_time[current_machine, current_job, current_lot] = (
                         _lot_completion_time_setup_independent()
                     )
-                
+
                 # Calculate penalty if shift constraints are considered
                 if is_shift_constraints and _is_big_lot_size():
                     lot_penalty = (
@@ -458,493 +463,145 @@ class JobShopDecoder(SolutionDecoder):
                 # Update lot route
                 routes[(current_job, current_lot)].pop(0)
 
-                # get makespan
-                makespan = np.max(completion_time)
+        # get makespan
+        makespan = np.max(completion_time)
 
         return makespan, penalty, start_time, completion_time, semi_encoded_solution
 
-    def get_fitness(self, decoded_solution: Any) -> float:
+    def get_fitness(self, encoded_solution: Any) -> float:
         # Implement the fitness calculation specific to Job Shop Scheduling
-        pass
+        return self.decode(encoded_solution)[0] + self.decode(encoded_solution)[1]
 
-
-def decode_chromosome(chromosome, params: params.JobShopRandomParams):
-    """
-    Decodes a chromosome to a solution
-
-    Args:
-        chromosome: numpy array with the chromosome
-        params: object of class JobShopRandomParams
-        shifts: boolean to indicate if shift constraints are considered
-        seq_dep_setup: boolean to indicate if setup times are sequence dependent
-
-    Returns:
-        y: numpy array with setup start times of all lots
-        c: numpy array with completion times of all lots
-        makespan: integer with makespan of the solution
-    """
-
-    shifts = params.shift_constraints
-    seq_dep_setup = params.is_setup_dependent
-
-    # Functions for active scheduling
-    def distribute_demand():
+    def get_lot_processing_start_times(
+        self, semi_encoded_solution: list, completion_time: np.ndarray
+    ) -> np.ndarray:
         """
-        Distributes a total demand into parts based on the given fractions
-        such that the sum of the parts equals the total demand.
+        Get the start times of each lot based on the encoded solution.
 
         Args:
+            semi_encoded_solution: chromosome containing lot sizes (int) and lot sequence
+            completion_time: numpy array with completion times of each lot
 
         Returns:
-            chromosome_lhs_m: numpy array with the demand distributed into lots
-                (LHS of the chromosome modified)
+            start_times: numpy array with start times of each lot
         """
-        chromosome_lhs_m = np.copy(chromosome[0])
-        for job in params.jobs:
-            total = np.sum(chromosome_lhs_m[n_lots * job : n_lots * (job + 1)])
+        lot_sizes = semi_encoded_solution[0]
+        p_times = self.problem_params.p_times
+        n_machines, n_jobs, n_lots = (
+            len(self.problem_params.machines),
+            len(self.problem_params.jobs),
+            len(self.problem_params.lots),
+        )
+        set_mju = {
+            (m, j, u)
+            for m in range(n_machines)
+            for j in range(n_jobs)
+            for u in range(n_lots)
+        }
 
-            if total != 0:  # Avoid division by zero
-                chromosome_lhs_m[n_lots * job : n_lots * (job + 1)] = (
-                    chromosome_lhs_m[n_lots * job : n_lots * (job + 1)] / total
+        lot_start_times = np.full((n_machines, n_jobs, n_lots), 0)  # start time
+        for m, j, u in set_mju:
+            if completion_time[m, j, u] > 0:
+                lot_start_times[m, j, u] = (
+                    completion_time[m, j, u] - p_times[m, j] * lot_sizes[n_lots * j + u]
                 )
 
-                for lot in params.lots:
-                    chromosome_lhs_m[n_lots * job + lot] = int(
-                        chromosome_lhs_m[n_lots * job + lot] * params.demand[job]
-                    )
-                total_preliminary = sum(
-                    chromosome_lhs_m[n_lots * job : n_lots * (job + 1)]
-                )
-                residual = params.demand[job] - total_preliminary
+        return lot_start_times
 
-                if residual > 0:
-                    for lot in params.lots:
-                        chromosome_lhs_m[n_lots * job + lot] += 1
-                        residual -= 1
-                        if residual == 0:
-                            break
+    def build_schedule_times_df(
+        self,
+        semi_encoded_solution: list,
+        setup_start_times: np.ndarray,
+        lot_start_times,
+        completion_times: np.ndarray,
+    ) -> pd.DataFrame:
+        """
+        Build a DataFrame with the schedule times for each lot.
 
-            else:
-                chromosome_lhs_m[n_lots * job : n_lots * (job + 1)] = (
-                    int(params.demand[job]) / n_lots
-                )
-                chromosome_lhs_m[n_lots * job + n_lots - 1] = (
-                    params.demand[job]
-                ) - sum(chromosome_lhs_m[n_lots * job : n_lots * (job)])
+        Args:
+            semi_encoded_solution: chromosome containing lot sizes (int) and lot sequence
+            setup_start_times: numpy array with setup start times of each lot
+            lot_start_times: numpy array with start times of each lot
+            completion_times: numpy array with completion times of each lot
 
-        return chromosome_lhs_m
+        Returns:
+            schedule_df: DataFrame with columns for job, lot, machine, setup start time, start time, and completion time
+        """
+        n_jobs = self.problem_params.n_jobs
+        n_lots = self.problem_params.n_lots
+        n_machines = self.problem_params.n_machines
+        lot_sizes = semi_encoded_solution[0]
 
-    def is_empty_machine() -> bool:
-        if seq_dep_setup:
-            if precedences[current_machine] == [
-                -1
-            ]:  # if is first lot processed in the machine
-                precedences[current_machine]
-                empty_machine = True
-            else:
-                empty_machine = False
-        else:
-            if precedences[current_machine] == []:  # if is first lot in the machine
-                empty_machine = True
-            else:
-                empty_machine = False
-        return empty_machine
+        # flatten the 3D arrays to 2D arrays
+        setup_start_times_flat = setup_start_times.reshape(
+            n_machines * n_jobs * n_lots, 1
+        )
+        lot_start_times_flat = lot_start_times.reshape(n_machines * n_jobs * n_lots, 1)
+        completion_times_flat = completion_times.reshape(
+            n_machines * n_jobs * n_lots, 1
+        )
 
-    def is_first_machine() -> bool:
-        if (
-            current_machine == params.seq[current_job][0]
-        ):  # if is first machine in the job route
-            first_machine = True
-        else:
-            first_machine = False
-        return first_machine
+        df = pd.DataFrame(setup_start_times_flat, columns=["setup_start_time"])
+        df["start_time"] = lot_start_times_flat
+        df["completion_time"] = completion_times_flat
+        df["machine"] = np.repeat(np.arange(n_machines), n_jobs * n_lots)
+        df["job"] = np.tile(np.repeat(np.arange(n_jobs), n_lots), n_machines)
+        df["lot"] = np.tile(np.arange(n_lots), n_machines * n_jobs)
+        df["lot_size"] = df.apply(
+            lambda row: lot_sizes[(row["job"] * n_lots) + (row["lot"])], axis=1
+        )
 
-    def completion_in_previous_machine():
-        previous_machine = params.seq[current_job][
-            params.seq[current_job].index(current_machine) - 1
-        ]  # previous machine in the job route
-        next_start_time = c[previous_machine, current_job, current_lot]
-        return next_start_time
-
-    def completion_in_current_machine():
-        predecessor = precedences[current_machine][
-            -1
-        ]  # predecessor in the current machine
-        next_start_time = c[current_machine, predecessor[0], predecessor[1]]
-        return next_start_time
-
-    def lot_start_time():
-        if is_first_machine() and is_empty_machine():
-            y[current_machine, current_job, current_lot] = 0
-
-        elif is_first_machine() and not is_empty_machine():
-            y[current_machine, current_job, current_lot] = (
-                completion_in_current_machine()
-            )
-
-        elif not is_first_machine() and is_empty_machine():
-            y[current_machine, current_job, current_lot] = (
-                completion_in_previous_machine()
-            )
-
-        elif not is_first_machine() and not is_empty_machine():
-            y[current_machine, current_job, current_lot] = max(
-                completion_in_current_machine(), completion_in_previous_machine()
-            )
-
-    # Functions for shift constraints
-
-    def is_big_lotsize() -> bool:
-        if seq_dep_setup:
-            lot_size_time = (
-                params.setup[
-                    current_machine,
-                    current_job + 1,
-                    precedences[current_machine][-1][0] + 1,
-                ]
-                + params.p_times[current_machine, current_job]
-                * chromosome_lhs_m[n_lots * current_job + current_lot]
-            )
-        else:
-            lot_size_time = (
-                params.setup[current_machine, current_job]
-                + params.p_times[current_machine, current_job]
-                * chromosome_lhs_m[n_lots * current_job + current_lot]
-            )
-        if lot_size_time > params.shift_time:
-            return True
-        else:
-            return False
-
-    def fit_within_predecessor_shift():
-        if seq_dep_setup:
-            if (
-                completion_in_current_machine() % params.shift_time
-                + params.setup[
-                    current_machine,
-                    current_job + 1,
-                    precedences[current_machine][-1][0] + 1,
-                ]
-                + params.p_times[current_machine, current_job]
-                * chromosome_lhs_m[n_lots * current_job + current_lot]
-                <= params.shift_time
-            ):
-                return True
-            else:
-                return False
-        else:
-            if (
-                completion_in_current_machine() % params.shift_time
-                + params.setup[current_machine, current_job]
-                + params.p_times[current_machine, current_job]
-                * chromosome_lhs_m[n_lots * current_job + current_lot]
-                <= params.shift_time
-            ):
-                return True
-            else:
-                return False
-
-    def fit_within_previous_shift():
-        if seq_dep_setup:
-            if (
-                completion_in_previous_machine() % params.shift_time
-                + params.setup[
-                    current_machine,
-                    current_job + 1,
-                    precedences[current_machine][-1][0] + 1,
-                ]
-                + params.p_times[current_machine, current_job]
-                * chromosome_lhs_m[n_lots * current_job + current_lot]
-                <= params.shift_time
-            ):
-                return True
-            else:
-                return False
-        else:
-            if (
-                completion_in_previous_machine() % params.shift_time
-                + params.setup[current_machine, current_job]
-                + params.p_times[current_machine, current_job]
-                * chromosome_lhs_m[n_lots * current_job + current_lot]
-                <= params.shift_time
-            ):
-                return True
-            else:
-                return False
-
-    def lot_start_time_with_shifts():
-        if is_big_lotsize():
-            lot_start_time()
-        else:
-            if is_first_machine() and is_empty_machine():
-                y[current_machine, current_job, current_lot] = 0
-
-            elif is_first_machine() and not is_empty_machine():
-                last_completion = completion_in_current_machine()
-                if fit_within_predecessor_shift():
-                    y[current_machine, current_job, current_lot] = last_completion
-                else:
-                    last_shift = last_completion // params.shift_time
-                    y[current_machine, current_job, current_lot] = params.shift_time * (
-                        last_shift + 1
-                    )
-
-            elif not is_first_machine() and is_empty_machine():
-                last_completion = completion_in_previous_machine()
-                if fit_within_previous_shift():
-                    y[current_machine, current_job, current_lot] = last_completion
-                else:
-                    y[current_machine, current_job, current_lot] = params.shift_time * (
-                        last_completion // params.shift_time + 1
-                    )
-
-            elif not is_first_machine() and not is_empty_machine():
-                last_completion_current_machine = completion_in_current_machine()
-                last_completion_previous_machine = completion_in_previous_machine()
-
-                if last_completion_previous_machine >= last_completion_current_machine:
-                    if fit_within_previous_shift():
-                        y[current_machine, current_job, current_lot] = (
-                            last_completion_previous_machine
-                        )
-                    else:
-                        y[current_machine, current_job, current_lot] = (
-                            params.shift_time
-                            * (
-                                last_completion_previous_machine // params.shift_time
-                                + 1
-                            )
-                        )
-
-                else:
-                    if fit_within_predecessor_shift():
-                        y[current_machine, current_job, current_lot] = (
-                            last_completion_current_machine
-                        )
-                    else:
-                        y[current_machine, current_job, current_lot] = (
-                            params.shift_time
-                            * (last_completion_current_machine // params.shift_time + 1)
-                        )
-
-    # Initialize variables
-    n_jobs = len(params.jobs)
-    n_machines = len(params.machines)
-    n_lots = len(params.lots)
-    chromosome_lhs = chromosome[0]
-    chromosome_rhs = chromosome[1]
-
-    # decode left hand side of the chromosome if it is a float
-    if type(chromosome_lhs[0]) is np.float64:
-        chromosome_lhs_m = distribute_demand()
-    else:
-        chromosome_lhs_m = np.copy(chromosome_lhs)
-
-    chromosome_mod = [chromosome_lhs_m, chromosome_rhs]
-
-    # Do a dictionary to track route of each lot
-    routes = {
-        (job, lot): params.seq[job][:] for job in params.jobs for lot in params.lots
-    }
-
-    # Dictionary to track precedence in scheduling
-    precedences = {}
-    for machine in params.machines:
-        if seq_dep_setup:
-            precedences[machine] = [(-1, 0)]
-        else:
-            precedences[machine] = []
-
-    # Arrays to store times of all sublots
-    y = np.full((n_machines, n_jobs, n_lots), 0)  # setup start time
-    c = np.full((n_machines, n_jobs, n_lots), 0)  # completion time
-
-    # Schedule the jobs and get the makespan
-    makespan = 0
-    penalty_coefficient = 1e2
-    max_lot_penalty = 0
-    penalty = 0
-    for i, job_lot in enumerate(chromosome_rhs):  # For each lot
-        if (
-            chromosome_lhs_m[n_lots * job_lot[0] + job_lot[1]] != 0
-        ):  # If the lot is not empty
-            current_job = job_lot[0]
-            current_lot = job_lot[1]
-            current_machine = routes[(current_job, current_lot)][0]
-
-            # Calculate the start time and completion of the lot
-            if shifts:
-                lot_start_time_with_shifts()
-            else:
-                lot_start_time()
-
-            # Calculate the completion time of the lot
-            if seq_dep_setup:
-                c[current_machine, current_job, current_lot] = (
-                    y[current_machine, current_job, current_lot]
-                    + params.setup[
-                        current_machine,
-                        current_job + 1,
-                        precedences[current_machine][-1][0] + 1,
-                    ]
-                    + params.p_times[current_machine, current_job]
-                    * chromosome_lhs_m[n_lots * current_job + current_lot]
-                )
-            else:
-                c[current_machine, current_job, current_lot] = (
-                    y[current_machine, current_job, current_lot]
-                    + params.setup[current_machine, current_job]
-                    + params.p_times[current_machine, current_job]
-                    * chromosome_lhs_m[n_lots * current_job + current_lot]
-                )
-
-            # Update makespan
-            if c[current_machine, current_job, current_lot] > makespan:
-                makespan = c[current_machine, current_job, current_lot]
-
-            if is_big_lotsize():
-                lot_penalty = (
-                    c[current_machine, current_job, current_lot] % params.shift_time
-                )
-                if lot_penalty > max_lot_penalty:
-                    max_lot_penalty = lot_penalty
-                    penalty = penalty_coefficient * max_lot_penalty
-
-            # Update precedences
-            precedences[current_machine].append((current_job, current_lot))
-
-            # Update lot route
-            routes[(current_job, current_lot)].pop(0)
-
-    return makespan, penalty, y, c, chromosome_mod
-
-
-def get_chromosome_start_times(chromosome_mod, params, c):
-    """
-    Calculates start times of all lots
-
-    Args:
-        chromosome: dataframe with solution parameters
-        params: object of class JobShopRandomParams
-        c: completion time of each lot
-
-    Returns:
-        x: numpy array with start time of each lot
-    """
-    chromosome_lhs_m = chromosome_mod[0]
-    n_machines, n_jobs, n_lots = (
-        len(params.machines),
-        len(params.jobs),
-        len(params.lots),
-    )
-    triple_mju = {
-        (m, j, u)
-        for m in range(n_machines)
-        for j in range(n_jobs)
-        for u in range(n_lots)
-    }
-
-    x = np.full((n_machines, n_jobs, n_lots), 0)  # start time
-    for m, j, u in triple_mju:
-        if c[m, j, u] > 0:
-            x[m, j, u] = (
-                c[m, j, u] - params.p_times[m, j] * chromosome_lhs_m[n_lots * j + u]
-            )
-
-    return x
-
-
-def build_chromosome_results_df(chromosome_mod, y, x, c):
-    """
-    Builds a dataframe to show chromosome solution results
-
-    Args:
-        y: numpy array with setup start times of all lots
-        c: numpy array with completion times of all lots
-        x: numpy array with start time of each lot
-
-    Returns:
-        df: dataframme with solution results
-    """
-    # Reshape the 3D array to a 2D array
-    # Shape will be (num_machines * num_jobs * num_lots, 1)
-    num_machines, num_jobs, num_lots = y.shape
-    s_start_time_2d = y.reshape(num_machines * num_jobs * num_lots, 1)
-    start_time_2d = x.reshape(num_machines * num_jobs * num_lots, 1)
-    completion_time_2d = c.reshape(num_machines * num_jobs * num_lots, 1)
-
-    # Create a DataFrame
-    df = pd.DataFrame(s_start_time_2d, columns=["setup_start_time"])
-
-    # Add additional columns
-    df["start_time"] = start_time_2d
-    df["completion_time"] = completion_time_2d
-
-    # Generate additional columns for machine, job, and lot
-    df["machine"] = np.repeat(np.arange(num_machines), num_jobs * num_lots)
-    df["job"] = np.tile(np.repeat(np.arange(num_jobs), num_lots), num_machines)
-    df["lot"] = np.tile(np.arange(num_lots), num_machines * num_jobs)
-
-    # Add the lot_size column based on the job and lot indices
-    chromosome_lhs_m = chromosome_mod[0]
-    df["lot_size"] = df.apply(
-        lambda row: chromosome_lhs_m[(row["job"] * num_lots) + row["lot"]], axis=1
-    )
-
-    # Reorder columns if needed
-    df = df[
-        [
-            "machine",
-            "job",
-            "lot",
-            "setup_start_time",
-            "start_time",
-            "completion_time",
-            "lot_size",
+        # Reorder columns
+        schedule_df = df[
+            [
+                "job",
+                "lot",
+                "machine",
+                "setup_start_time",
+                "start_time",
+                "completion_time",
+                "lot_size",
+            ]
         ]
-    ]
 
-    # Filter out rows where completion_time is 0
-    df_filtered = df[df["completion_time"] != 0]
-    df_filtered = df_filtered.reset_index(drop=True)
+        # Filter out rows where completion time is zero
+        schedule_df = schedule_df[schedule_df["completion_time"] > 0].reset_index(
+            drop=True
+        )
 
-    # Display the DataFrame
-    print(df_filtered)
+        return schedule_df
 
-    return df_filtered
+    def get_schedule_df_from_solution(self, encoded_solution: list) -> pd.DataFrame:
+        """
+        Get the schedule DataFrame from the encoded solution.
 
+        Args:
+            encoded_solution: Encoded solution (chromosome)
 
-def get_dataframe_results(chromosome, params, shifts=False, seq_dep_setup=False):
-    """
-    Get the results of a chromosome in a dataframe
-
-    Args:
-        chromosome: numpy array with the chromosome
-        params: object of class JobShopRandomParams
-        shifts: boolean to indicate if shift constraints are considered
-        seq_dep_setup: boolean to indicate if setup times are sequence dependent
-
-    Returns:
-        df_results: dataframe with the results of the chromosome
-    """
-    # Decode the chromosome
-    _, _, y, c, chromosome_mod = decode_chromosome(chromosome, params)
-
-    # Get start time of each lot
-    x = get_chromosome_start_times(chromosome_mod, params, c)
-
-    # Build dataframe with chromosome solution results
-    df_results = build_chromosome_results_df(chromosome_mod, y, x, c)
-
-    return df_results
+        Returns:
+            schedule_df: DataFrame with the schedule times for each lot
+        """
+        _, _, setup_start_times, completion_times, semi_encoded_solution = self.decode(
+            encoded_solution
+        )
+        lot_start_times = self.get_lot_processing_start_times(
+            semi_encoded_solution, completion_times
+        )
+        return self.build_schedule_times_df(
+            semi_encoded_solution, setup_start_times, lot_start_times, completion_times
+        )
 
 
-def main():
+def main():  # test function
     # Generate Job Shop Random Parameters
-    my_params = params.JobShopRandomParams(config_path="config/jobshop/js_params_01.yaml")
+    my_params = params.JobShopRandomParams(
+        config_path="config/jobshop/js_params_01.yaml"
+    )
     my_params.print_jobshop_params()
 
     # Example chromosome (could be random generated but for testing purposes is fixed)
+    # **IMPORTANT** The chromosome below only works with parameters n_jobs=3,
+    # n_machines=3, n_lots=3, seed=4
     chromosome = [
         np.array(
             [
@@ -984,26 +641,32 @@ def main():
     # Decode the chromosome
     decoder = JobShopDecoder(my_params)
     makespan, penalty, y, c, chromosome_mod = decoder.decode(chromosome)
-    
+    fitness = decoder.get_fitness(chromosome)
+    print("Fitness: ", fitness)
+
     # decode_chromosome(
-    #     chromosome, my_params, shifts=True, seq_dep_setup=True
-    # )
     print("makespan: \n", makespan)
     print("penalty: \n", penalty)
     print("setup start times: \n", y)
     print("completion times: \n", c)
 
     # Get start time of each lot
-    x = get_chromosome_start_times(chromosome_mod, my_params, c)
+    x = decoder.get_lot_processing_start_times(
+        semi_encoded_solution=chromosome_mod, completion_time=c
+    )
     print("Start times: \n", x)
 
     # Build dataframe with chromosome solution results
-    df_results = build_chromosome_results_df(chromosome_mod, y, x, c)
+    df_results = decoder.build_schedule_times_df(
+        semi_encoded_solution=chromosome_mod,
+        setup_start_times=y,
+        lot_start_times=x,
+        completion_times=c,
+    )
 
     # Plot gantt
     demand = my_params.demand
     plot.gantt(df_results, my_params, demand)
-    print("nice job")
 
 
 if __name__ == "__main__":

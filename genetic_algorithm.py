@@ -127,16 +127,11 @@ def run(
     # Step 1: Define the fitness function
     shifts = params.shift_constraints
     seq_dep_setup = params.is_setup_dependent
+    js_decoder = decoder.JobShopDecoder(params)
 
-    def evalFitness(individual, params):
-        decoded_chromosome = decoder.decode_chromosome(individual, params)
-        fitness = decoded_chromosome[0]  # makespan
-
-        if shifts:
-            shift_penalty = decoded_chromosome[1]
-            fitness += shift_penalty  # makespan + shift_penalty
-
-        return (fitness,)
+    def evalFitness(individual):
+        # return as a tuple needed by DEAP
+        return (js_decoder.get_fitness(encoded_solution=individual),)
 
     # Step 2: Create the individual and population
     # Define the fitness class for minimization
@@ -173,7 +168,7 @@ def run(
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Evaluation
-    toolbox.register("evaluate", evalFitness, params=params)
+    toolbox.register("evaluate", evalFitness)
 
     # Step 4: Create the population
     start_population = time.time()
@@ -359,9 +354,8 @@ def main():
     print("Time elapsed: ", end - start, "seconds")
     print("Current fitness: ", current_fitness)
     if my_params.shift_constraints:
-        makespan, penalty, y, c, chromosome_mod = decoder.decode_chromosome(
-            best_individual, my_params
-        )
+        js_decoder = decoder.JobShopDecoder(my_params)
+        makespan, penalty, y, c, chromosome_mod = js_decoder.decode(best_individual)
         print("Makespan: ", makespan)
         print("Penalty: ", penalty)
         print(best_individual)
