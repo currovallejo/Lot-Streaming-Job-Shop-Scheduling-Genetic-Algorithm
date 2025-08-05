@@ -12,6 +12,7 @@ Script: genetic_operators.py - Genetic Operators for GA
 # --------- LIBRARIES ---------
 import numpy as np
 import random
+import copy
 from deap import tools
 
 # --------- OTHER PYTHON FILES USED ---------
@@ -20,6 +21,199 @@ import params
 
 
 # --------- GENETIC OPERATORS ---------
+
+
+class SimpleCrossoverOperators:
+    """Crossover operators for 1D arrays"""
+
+    def spc1(self, ind1: list, ind2: list) -> tuple[np.ndarray, np.ndarray]:
+        """Apply SPC-1 crossover operator"""
+        cp = random.randint(1, len(ind1) - 1)
+        new_ind1, new_ind2 = np.copy(ind1), np.copy(ind2)
+        new_ind1[:cp], new_ind2[:cp] = ind2[:cp], ind1[:cp]
+        return new_ind1, new_ind2
+
+    def spc2(self, ind1: list, ind2: list) -> tuple[np.ndarray, np.ndarray]:
+        """Apply SPC-2 crossover operator"""
+        cp = random.randint(1, len(ind1) - 1)
+        new_ind1, new_ind2 = np.copy(ind1), np.copy(ind2)
+        new_ind1[cp:], new_ind2[cp:] = ind2[cp:], ind1[cp:]
+        return new_ind1, new_ind2
+
+
+class SimpleMutationOperators:
+    """Mutation operators for 1D arrays"""
+
+    def sstm(self, ind, gen_mutation_prob: float, delta_max: float) -> np.ndarray:
+        """Apply Sublot Step Mutation (SStM) mutation operator
+        Args:
+            ind1 (list): The chromosome to mutate.
+            mutation_prob (float): Probability of mutation for each gene.
+            delta_max (float): Maximum step size for mutation.
+        Returns:
+            list: The mutated chromosome.
+        """
+        mutant = np.copy(ind)
+        for i in range(len(mutant)):
+            if np.random.rand() < gen_mutation_prob:
+                delta = delta_max * np.random.rand()
+                if np.random.rand() < 0.5:
+                    mutant[i] = min(1, mutant[i] + delta)
+                else:
+                    mutant[i] = max(0, mutant[i] - delta)
+        return mutant
+
+
+class LotStreamingOperators:
+    """Genetic operators for Lot Streaming Job Shop chromosomes
+    Remember that chromosomes are composed by:
+    - Left-hand side (LHS): np.ndarray (lot sizes)
+    - Right-hand side (RHS): list of tuples (job, lot)
+    """
+
+    def __init__(self):
+        self.flat_crossover_operators = SimpleCrossoverOperators()
+        self.flat_mutation_operators = SimpleMutationOperators()
+
+    # ---- CONVERSION METHODS FOR RHS (Job Sequences) ---------
+
+    def _tuple_lists_to_int_lists(
+        self, rhs1: list[tuple[int, int]], rhs2: list[tuple[int, int]]
+    ) -> tuple[list[int], list[int]]:
+        """Convert tuple lists (chromosome right-hand side) to integer lists"""
+        return (
+            [3 * gene[0] + gene[1] for gene in rhs1],
+            [3 * gene[0] + gene[1] for gene in rhs2],
+        )
+
+    def _int_lists_to_tuple_lists(
+        self, rhs_offspring1: list[int], rhs_offspring2: list[int]
+    ) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+        """Convert integer lists (flatten chromosome right-hand side) to tuple lists"""
+        return (
+            [(x // 3, x % 3) for x in rhs_offspring1],
+            [(x // 3, x % 3) for x in rhs_offspring2],
+        )
+    
+    def _rhs_flat_evolve_unflat(rhs, genetic_operator):
+        """Flat a right-hand side, apply a genetic operator, and unflat it"""
+        rhs_flat = self._tuple_lists_to_int_lists(rhs, rhs)
+        new_rhs_flat = genetic_operator(rhs_flat[0], rhs_flat[1])
+
+
+    def _rhs_crossover_func(self, rhs1, rhs2, deap_crossover_func):
+        """Generic crossover function for right-hand side"""
+        rhs1_flat, rhs2_flat = self._tuple_lists_to_int_lists(rhs1, rhs2)
+        new_rhs1__flat, new_rhs2_flat = deap_crossover_func(rhs1_flat, rhs2_flat)
+        new_ind1, new_ind2 = self._int_lists_to_tuple_lists(
+            new_rhs1__flat, new_rhs2_flat
+        )
+        return new_ind1, new_ind2
+
+    # --------- GENERIC METHODS ---------
+
+    def _crossover_template(self, ind1, ind2, crossover_func, target_index):
+        """Generic crossover method for chromosomes"""
+        new_ind1, new_ind2 = copy.deepcopy(ind1), copy.deepcopy(ind2)
+        new_ind1[target_index], new_ind2[target_index] = crossover_func(
+            ind1[target_index], ind2[target_index]
+        )
+        return new_ind1, new_ind2
+
+    def _mutation_template(self, ind, mutation_func, target_index):
+        new_ind = copy.deepcopy(ind)
+        new_ind[target_index] = mutation_func(ind[target_index])
+        return new_ind
+
+    # --------- LHS CROSSOVER METHODS (Lot Sizes) ---------
+    def spc1_lhs(self, ind1, ind2):
+        """SPC-1 crossover for left-hand side"""
+        return self._crossover_template(
+            ind1, ind2, self.flat_crossover_operators.spc1, 0
+        )
+
+    def spc2_lhs(self, ind1, ind2):
+        """SPC-2 crossover for left-hand side"""
+        return self._crossover_template(
+            ind1, ind2, self.flat_crossover_operators.spc2, 0
+        )
+
+    # --------- RHS CROSSOVER METHODS (Job Sequences) ---------
+
+    def pmx_rhs(self, ind1, ind2):
+        """PMX crossover for right-hand side"""
+        return self._crossover_template(
+            ind1,
+            ind2,
+            lambda r1, r2: self._rhs_crossover_func(r1, r2, tools.cxPartialyMatched),
+            target_index=1,
+        )
+
+    def ox_rhs(self, ind1, ind2):
+        """OX crossover for right-hand side"""
+        return self._crossover_template(
+            ind1,
+            ind2,
+            lambda r1, r2: self._rhs_crossover_func(r1, r2, tools.cxOrdered),
+            target_index=1,
+        )
+
+    def cx_job_level_rhs(self, ind1, ind2):
+        return self._crossover_template(
+            ind1,
+            ind2,
+            lambda r1, r2: self._cx_job_level(r1, r2),
+            target_index=1,
+        )
+
+    def _cx_job_level(self, rhs1, rhs2):
+        """Job Level crossover core logic for right-hand side"""
+
+        def _fill_rest(new_rhs, jobs_set, other_rhs):
+            idx = 0
+            for gene in other_rhs:
+                while idx < len(new_rhs) and new_rhs[idx] is not None:
+                    idx += 1
+                if gene not in jobs_set:
+                    new_rhs[idx] = gene
+                    idx += 1
+
+        # Step 1: Choose a job from parent 1 arbitrarily
+        chosen_job1 = random.choice([gene[0] for gene in rhs1])
+
+        # Step 2: Copy all operations of the chosen job from parent 1 to child 1,
+        # preserving their positions
+        new_rhs1 = [gene if gene[0] == chosen_job1 else None for gene in rhs1]
+
+        # Step 3: Complete child 1 with the remaining operations from parent 2,
+        # preserving the order and avoiding duplicates
+        new_rhs1_jobs = {g for g in new_rhs1 if g is not None}
+        _fill_rest(new_rhs1, new_rhs1_jobs, rhs2)
+
+        # Step 4: Repeat the process for child 2, but choose the job from parent 2
+        chosen_job2 = random.choice([gene[0] for gene in rhs2])
+        new_rhs2 = [gene if gene[0] == chosen_job2 else None for gene in rhs2]
+
+        # fill the rest with operations from parent 1
+        child2_jobs = {g for g in new_rhs2 if g is not None}
+        _fill_rest(new_rhs2, child2_jobs, rhs1)
+
+        return new_rhs1, new_rhs2
+
+    # --------- MUTATION METHODS ---------
+    def sstm_lhs(self, ind):
+        """SSTM mutation for left-hand side (lot sizes)"""
+        return self._mutation_template(ind, self.flat_mutation_operators.sstm, 0)
+
+    def shuffle_rhs(self, ind):
+        """Shuffle mutation for right-hand side (job sequences)"""
+        return self._mutation_template(
+            ind,
+            lambda r1, r2: self._cx_job_level(r1, r2),
+            target_index=1,
+        )
+
+
 # Cross-over operators
 def spc1_crossover(ind1, ind2):
     """
