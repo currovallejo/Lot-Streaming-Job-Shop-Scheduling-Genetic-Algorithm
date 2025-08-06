@@ -24,6 +24,14 @@ from genetic_operators import *
 
 # --------- GENETIC OPERATORS ---------
 # Cross-over operators
+
+
+def spc1_ga(ind1, ind2):
+    operators = LotStreamingOperators()
+    new_ind1, new_ind2 = operators.spc1_lhs(ind1, ind2)
+    return new_ind1, new_ind2
+
+
 def spc1_crossover_lhs(ind1, ind2):
     new_ind1 = copy.deepcopy(ind1)
     new_ind2 = copy.deepcopy(ind2)
@@ -94,7 +102,7 @@ def mutShuffleIndexes_rhs(individual):
 # --------- GENETIC ALGORITHM ---------
 
 
-def create_individual_factory(params):
+def create_individual_factory(params: params.JobShopRandomParams):
     def create_individual():
         return chromosome_generator.generate_chromosome(params)
 
@@ -102,7 +110,7 @@ def create_individual_factory(params):
 
 
 def run(
-    params: params.JobShopRandomParams,
+    problem_params: params.JobShopRandomParams,
     population_size: int,
     num_generations: int,
     plotting=True,
@@ -111,7 +119,7 @@ def run(
     Genetic algorithm for LSJSP problem developed with DEAP package
 
     Args:
-        params: parameters of the problem
+        problem_params: parameters of the problem
         population_size: number of individuals in the population
         num_generations: number of generations
         shifts: boolean, True if shifts are considered
@@ -125,9 +133,9 @@ def run(
 
     # --------- DEAP SETUP ---------
     # Step 1: Define the fitness function
-    shifts = params.shift_constraints
-    seq_dep_setup = params.is_setup_dependent
-    js_decoder = decoder.JobShopDecoder(params)
+    shifts = problem_params.shift_constraints
+    seq_dep_setup = problem_params.is_setup_dependent
+    js_decoder = decoder.JobShopDecoder(problem_params)
 
     def evalFitness(individual):
         # return as a tuple needed by DEAP
@@ -144,7 +152,7 @@ def run(
     toolbox = base.Toolbox()
 
     # Factory function for individual creation
-    create_individual = create_individual_factory(params)
+    create_individual = create_individual_factory(problem_params)
 
     # Register the individual creation function
     toolbox.register(
@@ -154,15 +162,32 @@ def run(
 
     # Step 3: Register genetic operators
     # Crossover
-    toolbox.register("spc1", spc1_crossover_lhs)
-    toolbox.register("spc2", spc2_crossover_lhs)
-    toolbox.register("PMX", cxPartiallyMatched_rhs)
-    toolbox.register("OX", cxOrdered_rhs)
-    toolbox.register("JL", cxJobLevel_rhs)
+    # toolbox.register("spc1_original", spc1_crossover_lhs)
+    # toolbox.register("spc2", spc2_crossover_lhs)
+    # toolbox.register("PMX", cxPartiallyMatched_rhs)
+    # toolbox.register("OX", cxOrdered_rhs)
+    # toolbox.register("JL", cxJobLevel_rhs)
+
+    # # Mutation
+    # toolbox.register("sstm", sstm_mutation_lhs)
+    # toolbox.register("MSI", mutShuffleIndexes_rhs)
+    # Instantiate the genetic operators class
+    operators = LotStreamingOperators()
+
+    # Build master operations dictionaries for RHS crossover
+    operators.build_master_ops_dict(problem_params)
+    operators.build_inverted_master_ops_dict()
+
+    # Crossover
+    toolbox.register("spc1", spc1_ga)
+    toolbox.register("spc2", operators.spc2_lhs)
+    toolbox.register("PMX", operators.pmx_rhs)
+    toolbox.register("OX", operators.ox_rhs)
+    toolbox.register("JL", operators.cx_job_level_rhs)
 
     # Mutation
-    toolbox.register("sstm", sstm_mutation_lhs)
-    toolbox.register("MSI", mutShuffleIndexes_rhs)
+    toolbox.register("sstm", operators.sstm_lhs)
+    toolbox.register("MSI", operators.shuffle_rhs)
 
     # Selection
     toolbox.register("select", tools.selTournament, tournsize=3)
@@ -191,6 +216,7 @@ def run(
     diversification_threshold = 10  # 30 generations without improvement
     no_improvement_generations = 0
     best_fitness = float("inf")  # tracking
+    fitness_scores = []  # to store fitness scores for plotting
 
     for gen in range(num_generations):
         start = time.time()
@@ -202,37 +228,46 @@ def run(
 
         # Apply crossover and mutation on the offspring
         for child1, child2 in zip(offspring[::2], offspring[1::2]):
+
             # LHS crossover
             if np.random.rand() < SPC1:
-                toolbox.spc1(child1, child2)
+                c1, c2 = operators.spc1_lhs(child1, child2)
+                child1[:], child2[:] = c1, c2
                 del child1.fitness.values
                 del child2.fitness.values
+
             if np.random.rand() < SPC2:
-                toolbox.spc2(child1, child2)
+                c1, c2 = operators.spc2_lhs(child1, child2)
+                child1[:], child2[:] = c1, c2
                 del child1.fitness.values
                 del child2.fitness.values
             # RHS crossover
             if np.random.rand() < PMX:
-                toolbox.PMX(child1, child2)
+                c1, c2 = operators.pmx_rhs(child1, child2)
+                child1[:], child2[:] = c1, c2
                 del child1.fitness.values
                 del child2.fitness.values
             if np.random.rand() < OX:
-                toolbox.OX(child1, child2)
+                c1, c2 = operators.ox_rhs(child1, child2)
+                child1[:], child2[:] = c1, c2
                 del child1.fitness.values
                 del child2.fitness.values
             if np.random.rand() < JL:
-                toolbox.JL(child1, child2)
+                c1, c2 = operators.cx_job_level_rhs(child1, child2)
+                child1[:], child2[:] = c1, c2
                 del child1.fitness.values
                 del child2.fitness.values
 
         for mutant in offspring:
             # LHS mutation
             if np.random.rand() < SSTM:
-                toolbox.sstm(mutant)
+                m = operators.sstm_lhs(mutant)
+                mutant[:] = m
                 del mutant.fitness.values
             # RHS mutation
             if np.random.rand() < MSI:
-                toolbox.MSI(mutant)
+                m = operators.shuffle_rhs(mutant)
+                mutant[:] = m
                 del mutant.fitness.values
 
         # Evaluate the individuals with an invalid fitness (new individuals)
@@ -259,7 +294,7 @@ def run(
             print(
                 "Generation: ",
                 gen,
-                "Best fitness (makespan): ",
+                "Best fitness of this population (makespan): ",
                 min([ind.fitness.values[0] for ind in population]),
                 "Time elapsed: ",
                 end - start,
@@ -279,6 +314,8 @@ def run(
             if SSTM < 0.8:
                 SSTM = SSTM * 1.05
                 MSI = MSI * 1.05
+
+        fitness_scores.append(best_fitness)
 
         # Diversification step
         if no_improvement_generations >= diversification_threshold:
@@ -306,6 +343,7 @@ def run(
 
     # Step 6: Get the best individual
     best_individual = tools.selBest(population, 1)[0]
+    plot.solution_evolution(fitness_scores, show=True, save=True)
 
     if plotting:
         if shifts:
@@ -313,32 +351,21 @@ def run(
         else:
             print("Best fitness (makespan): ", best_fitness)
 
-        df_results = decoder.get_dataframe_results(
-            best_individual, params, shifts, seq_dep_setup
+        df_results = js_decoder.get_schedule_df_from_solution(best_individual)
+        plot.gantt(
+            df_results, problem_params, shifts=shifts, seq_dep_setup=seq_dep_setup
         )
-        plot.gantt(df_results, params, shifts=shifts, seq_dep_setup=seq_dep_setup)
 
     return best_fitness, best_individual
 
 
 def main():
     # --------- PARAMETERS AND CONSTRAINTS (CHANGE FOR DIFFERENT SCENARIOS) ---------
-    # contraints
-    shifts_constraint = True
-    sequence_dependent = True
-
-    # Parameters
-    n_machines = 3  # number of machines
-    n_jobs = 3  # number of jobs
-    n_lots = 3  # number of lots
-    seed = 5  # seed for random number generator
-    demand = {i: 50 for i in range(0, n_jobs + 1)}  # demand of each job
 
     # Create parameters object
     my_params = params.JobShopRandomParams(
         config_path="config/jobshop/js_params_01.yaml"
     )
-    my_params.demand = demand  # demand of each job
     my_params.print_jobshop_params(save_to_excel=False)
 
     # --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
@@ -358,8 +385,8 @@ def main():
         makespan, penalty, y, c, chromosome_mod = js_decoder.decode(best_individual)
         print("Makespan: ", makespan)
         print("Penalty: ", penalty)
-        print(best_individual)
-        print(chromosome_mod)
+        # print(best_individual)
+        # print(chromosome_mod)
 
 
 if __name__ == "__main__":

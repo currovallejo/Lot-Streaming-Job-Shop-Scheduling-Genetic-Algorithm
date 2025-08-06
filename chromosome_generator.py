@@ -19,23 +19,24 @@ import params
 # --------- CHROMOSOME GENERATOR ---------
 
 
-def generate_chromosome(params):
-    """
-    Generates a random chromosome given the parameters of the problem
-
+def generate_chromosome(
+    params: params.JobShopRandomParams,
+) -> list[np.ndarray, list[tuple[int, int]]]:
+    """Generate a random chromosome for the Job Shop Scheduling Problem.
     Args:
-        params: object of class JobShopRandomParams
-        demand: dictionary with the demand of each job
+        params (JobShopRandomParams): Parameters for the job shop problem.
 
     Returns:
-        chromosome: numpy array with the chromosome
+        list: A chromosome represented as a list containing two elements:
+            - [0] (numpy.ndarray): Left-hand side with random float values between 0
+            and 1, representing the size of each lot.
+            - [1] (list): Right-hand side with shuffled tuples of (job, lot) for each
+            machine operation
     """
     # Generate chromosome left-hand side
-    chromosome_lhs = np.array([
-        random.random()
-        for job in params.jobs
-        for lot in params.lots
-    ])
+    chromosome_lhs = np.array(
+        [random.random() for job in params.jobs for lot in params.lots]
+    )
 
     # Generate chromosome right-hand side (sublots)
     chromosome_rhs = [
@@ -47,7 +48,7 @@ def generate_chromosome(params):
 
     random.shuffle(chromosome_rhs)
 
-    # Concatenate both sides
+    # Concatenate both sides as a list for modification permission
     chromosome = [chromosome_lhs, chromosome_rhs]
 
     return chromosome
