@@ -1,5 +1,6 @@
 """
 Created on Aug 08 2024
+Refactored on Aug 2025
 
 Author: Francisco Vallejo
 LinkedIn: www.linkedin.com/in/franciscovallejogt
@@ -12,105 +13,231 @@ Script: genetic_algorithm.py - Genetic Algorithm
 # --------- LIBRARIES ---------
 from deap import base, creator, tools
 import time
+import numpy as np
+from typing import Tuple
 
-# --------- OTHER PYTHON FILES USED ---------
-import chromosome_generator
-import params
-import decoder
-import plot
-import copy
-from genetic_operators import *
-
-
-# --------- GENETIC OPERATORS ---------
-# Cross-over operators
-
-
-def spc1_ga(ind1, ind2):
-    operators = LotStreamingOperators()
-    new_ind1, new_ind2 = operators.spc1_lhs(ind1, ind2)
-    return new_ind1, new_ind2
-
-
-def spc1_crossover_lhs(ind1, ind2):
-    new_ind1 = copy.deepcopy(ind1)
-    new_ind2 = copy.deepcopy(ind2)
-    new_ind1_lhs, new_ind2_lhs = spc1_crossover(ind1[0], ind2[0])
-    new_ind1[0] = new_ind1_lhs
-    new_ind2[0] = new_ind2_lhs
-    return new_ind1, new_ind2
-
-
-def spc2_crossover_lhs(ind1, ind2):
-    new_ind1 = copy.deepcopy(ind1)
-    new_ind2 = copy.deepcopy(ind2)
-    new_ind1_lhs, new_ind2_lhs = spc2_crossover(ind1[0], ind2[0])
-    new_ind1[0] = new_ind1_lhs
-    new_ind2[0] = new_ind2_lhs
-    return new_ind1, new_ind2
-
-
-def cxPartiallyMatched_rhs(ind1, ind2):
-    new_ind1 = copy.deepcopy(ind1)
-    new_ind2 = copy.deepcopy(ind2)
-    rhs_1 = ind1[1]
-    rhs_2 = ind2[1]
-    new_ind1_rhs, new_ind2_rhs = cxPartialyMatched_mod(rhs_1, rhs_2)
-    new_ind1[1] = new_ind1_rhs
-    new_ind2[1] = new_ind2_rhs
-    return new_ind1, new_ind2
-
-
-def cxOrdered_rhs(ind1, ind2):
-    new_ind1 = copy.deepcopy(ind1)
-    new_ind2 = copy.deepcopy(ind2)
-    rhs_1 = ind1[1]
-    rhs_2 = ind2[1]
-    new_ind1_rhs, new_ind2_rhs = cxOrdered_mod(rhs_1, rhs_2)
-    new_ind1[1] = new_ind1_rhs
-    new_ind2[1] = new_ind2_rhs
-    return new_ind1, new_ind2
-
-
-def cxJobLevel_rhs(ind1, ind2):
-    new_ind1 = copy.deepcopy(ind1)
-    new_ind2 = copy.deepcopy(ind2)
-    rhs_1 = ind1[1]
-    rhs_2 = ind2[1]
-    new_ind1_rhs, new_ind2_rhs = cxJobLevel(rhs_1, rhs_2)
-    new_ind1[1] = new_ind1_rhs
-    new_ind2[1] = new_ind2_rhs
-    return new_ind1, new_ind2
-
-
-# Mutation operators
-def sstm_mutation_lhs(ind):
-    new_ind = copy.deepcopy(ind)
-    new_ind_lhs = sstm_mutation(ind[0], 0.2, 0.5)
-    new_ind[0] = new_ind_lhs
-    return new_ind
-
-
-def mutShuffleIndexes_rhs(individual):
-    new_ind = copy.deepcopy(individual)
-    rhs = individual[1]
-    new_rhs = mutShuffleIndexes_mod(rhs)
-    new_ind[1] = new_rhs
-    return new_ind
-
+# --------- src/ MODULES ---------
+from . import chromosome_generator
+from . import decoder
+from . import plot
+from .params import JobShopRandomParams
+from .genetic_operators import LotStreamingOperators
+from .types import Chromosome
+from .utils import load_config, timed
 
 # --------- GENETIC ALGORITHM ---------
 
 
-def create_individual_factory(params: params.JobShopRandomParams):
+class GeneticAlgorithm:
+
+    def __init__(self, problem_params: JobShopRandomParams, logger, config_path: str):
+        self.problem_params = problem_params
+        self.logger = logger
+        self.config = load_config(config_path)
+        self.population_size = self.config["population_size"]
+        self.num_generations = self.config["num_generations"]
+        self.cx_probs: dict = self.config["crossover"]
+        self.mut_probs: dict = self.config["mutation"]
+        self.tournament_size = self.config["selection"]["tournament_size"]
+        self.diversification = self.config["diversification"]["enabled"]
+        self.diversification_threshold = self.config["diversification"]["threshold"]
+        # Genetic operators setup
+        operators = LotStreamingOperators()
+        operators.build_master_ops_dict(problem_params)
+        operators.build_inverted_master_ops_dict()
+        self._cx_funcs = {
+            "spc1": operators.spc1_lhs,
+            "spc2": operators.spc2_lhs,
+            "pmx": operators.pmx_rhs,
+            "ox": operators.ox_rhs,
+            "job_level": operators.cx_job_level_rhs,
+        }
+        self._mut_funcs = {
+            "sstm": operators.sstm_lhs,
+            "msi": operators.shuffle_rhs,
+        }
+
+    @timed
+    def run(self):
+        """
+        Run the genetic algorithm for the Lot Streaming Job Shop Scheduling Problem.
+        Returns:
+            best_fitness: Best makespan value found.
+            fitness_history: List of best fitness values per generation.
+            best_individual: Chromosome of the best solution found.
+        """
+        # Initialize DEAP toolbox
+        toolbox = self._setup_deap()
+        # Create the initial population
+        population = toolbox.population(n=self.population_size)
+        # Initialize best fitness tracking for plotting
+        best_fitness = float("inf")
+        best_fitness_history = []
+        self.no_improve_gen = 0  # Counter for generations without improvement
+
+        for gen in range(self.num_generations):
+            start = time.time()
+            # Select the next generation individuals
+            offspring = list(
+                map(toolbox.clone, toolbox.select(population, len(population)))
+            )
+            # Apply crossover and mutation on the offspring
+            self._apply_crossover(offspring)
+            self._apply_mutation(offspring)
+            # Evaluate the individuals that have evolved
+            for ind in offspring:
+                if not ind.fitness.valid:
+                    ind.fitness.values = toolbox.evaluate(ind)
+            # Replace the population by the offspring
+            population[:] = offspring
+            # Track the best fitness of the current population
+            best_population_fitness = min(ind.fitness.values[0] for ind in population)
+
+            # Log the best fitness obtaines until now
+            if best_population_fitness < best_fitness:
+                best_fitness = best_population_fitness
+            best_fitness_history.append(best_fitness)
+
+            # Increase mutation rates if no improvement
+            self._update_mutation_rates(best_fitness, best_population_fitness)
+
+            # Diversify population if needed
+            if (
+                self.diversification
+                and self.no_improve_gen >= self.diversification_threshold
+            ):
+                self.logger.info(
+                    f"Diversification triggered at gen {gen}, new threshold {self.diversification_threshold}"
+                )
+                population = self._diversify_population(population, toolbox)
+
+            end = time.time()
+            self.logger.info(f"Generation {gen} completed in {end - start} seconds")
+            self.logger.info(
+                f"Best fitness of this population: {best_population_fitness}"
+            )
+
+        return best_fitness, best_fitness_history, tools.selBest(population, 1)[0]
+
+    def _eval_fitness(self, individual: Chromosome) -> Tuple[float]:
+        """
+        Evaluate the fitness of an individual.
+        Returns:
+            A tuple containing the fitness value (makespan).
+        """
+        js_decoder = decoder.JobShopDecoder(self.problem_params)
+        return (js_decoder.get_fitness(encoded_solution=individual),)
+
+    def _create_individual_factory(self) -> callable:
+        """
+        Factory function to create an individual.
+        Returns:
+            A function that generates a new individual.
+        """
+        return lambda: chromosome_generator.generate_chromosome(self.problem_params)
+
+    def _setup_deap(self) -> base.Toolbox:
+        """
+        Set up DEAP for the genetic algorithm.
+        Returns:
+            toolbox: The DEAP toolbox configured with the problem parameters.
+        """
+        creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+        creator.create("Individual", list, fitness=creator.FitnessMin)
+        toolbox = base.Toolbox()
+        toolbox.register(
+            "individual",
+            tools.initIterate,
+            creator.Individual,
+            self._create_individual_factory(),
+        )
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
+        toolbox.register("evaluate", self._eval_fitness)
+        return toolbox
+
+    def _apply_crossover(self, offspring):
+        """
+        Apply crossover to the offspring.
+        Args:
+            offspring: List of offspring individuals.
+        """
+        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
+            for name, func in self._cx_funcs.items():
+                p = self.cx_probs.get(name)
+                if p > 0 and np.random.rand() < p:
+                    child1, child2 = func(ind1, ind2)
+                    ind1[:], ind2[:] = child1, child2
+                    # invalidate fitness so it’ll be re-evaluated
+                    del ind1.fitness.values
+                    del ind1.fitness.values
+
+    def _apply_mutation(self, offspring):
+        """
+        Apply mutation to the offspring.
+        Args:
+            offspring: List of offspring individuals.
+        """
+        for ind in offspring:
+            for name, func in self._mut_funcs.items():
+                p = self.mut_probs.get(name, 0.0)
+                if p > 0 and np.random.rand() < p:
+                    mutant = func(ind)
+                    ind[:] = mutant
+                    del ind.fitness.values
+
+    def _diversify_population(self, population, toolbox):
+        """
+        Kills half of the population and introduces new random individuals
+        Args:
+            population: Current population of individuals.
+            no_improvement_generations: Number of generations without improvement.
+        """
+        self.diversification_threshold *= 2  # Increase threshold for next time
+        # Delete half of the population
+        half = self.population_size // 2
+        population.sort(key=lambda ind: ind.fitness.values[0])
+        new_pop = population[:half]
+        # Fill the remainder with new individuals
+        n_new = self.population_size - half
+        new_pop.extend(toolbox.population(n=n_new))
+        # Reset no_improve_gen counter
+        self.no_improve_gen = 0
+        return new_pop
+
+    def _update_mutation_rates(self, best_fitness, best_population_fitness: float):
+        """
+        Reset or grow the mutation probabilities based on improvement.
+        """
+        init_sstm = self.config["mutation"]["sstm"]
+        cap = self.config.get("mutation_cap", 0.8)
+        factor = self.config.get("mutation_growth", 1.05)
+
+        if best_population_fitness <best_fitness:
+            # reset everything
+            best_fitness = best_population_fitness
+            self.no_improve_gen = 0
+            new_rate = init_sstm
+        else:
+            # no improvement
+            self.no_improve_gen += 1
+            # grow up to cap, otherwise reset
+            grown = self.mut_probs["sstm"] * factor
+            new_rate = grown if grown < cap else init_sstm
+
+        self.mut_probs["sstm"] = new_rate
+        self.mut_probs["msi"] = new_rate
+
+
+def create_individual_factory(problem_params: JobShopRandomParams):
     def create_individual():
-        return chromosome_generator.generate_chromosome(params)
+        return chromosome_generator.generate_chromosome(problem_params)
 
     return create_individual
 
 
 def run(
-    problem_params: params.JobShopRandomParams,
+    problem_params: JobShopRandomParams,
     population_size: int,
     num_generations: int,
     plotting=True,
@@ -179,7 +306,7 @@ def run(
     operators.build_inverted_master_ops_dict()
 
     # Crossover
-    toolbox.register("spc1", spc1_ga)
+    toolbox.register("spc1", operators.spc1_lhs)
     toolbox.register("spc2", operators.spc2_lhs)
     toolbox.register("PMX", operators.pmx_rhs)
     toolbox.register("OX", operators.ox_rhs)
@@ -314,6 +441,8 @@ def run(
             if SSTM < 0.8:
                 SSTM = SSTM * 1.05
                 MSI = MSI * 1.05
+            else:
+                SSTM, MSI = 0.3, 0.3
 
         fitness_scores.append(best_fitness)
 
@@ -357,37 +486,3 @@ def run(
         )
 
     return best_fitness, best_individual
-
-
-def main():
-    # --------- PARAMETERS AND CONSTRAINTS (CHANGE FOR DIFFERENT SCENARIOS) ---------
-
-    # Create parameters object
-    my_params = params.JobShopRandomParams(
-        config_path="config/jobshop/js_params_01.yaml"
-    )
-    my_params.print_jobshop_params(save_to_excel=False)
-
-    # --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
-    # Genetic algorithm
-    start = time.time()
-    current_fitness, best_individual = run(
-        my_params,
-        population_size=100,
-        num_generations=100,
-        plotting=True,
-    )
-    end = time.time()
-    print("Time elapsed: ", end - start, "seconds")
-    print("Current fitness: ", current_fitness)
-    if my_params.shift_constraints:
-        js_decoder = decoder.JobShopDecoder(my_params)
-        makespan, penalty, y, c, chromosome_mod = js_decoder.decode(best_individual)
-        print("Makespan: ", makespan)
-        print("Penalty: ", penalty)
-        # print(best_individual)
-        # print(chromosome_mod)
-
-
-if __name__ == "__main__":
-    main()

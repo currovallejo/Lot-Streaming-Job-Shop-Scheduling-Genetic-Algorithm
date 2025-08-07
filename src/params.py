@@ -3,16 +3,14 @@ DEFINITION OF CLASSES TO HANDLE JOBSHOP PARAMETERS
 ----------------------------------------------------------------------
 - Classes, methods and functions are defined to facilitate the handling of jobshop
 parameters in the script where the model is defined.
-- Original code by: Bruno Scalia C. F. Leite
+- Based in code written by Bruno Scalia C. F. Leite
 """
 
 import numpy as np
 from typing import Iterable
-import json
 import pandas as pd
-import os
-import yaml
-from pathlib import Path
+
+from src import utils
 
 
 def custom_serializer(obj):
@@ -104,7 +102,7 @@ class JobShopRandomParams(JobShopParams):
         config_path : str, optional
             Path to YAML configuration file, by default "config/jobshop_config.yaml"
         """
-        config = self._load_config(config_path)
+        config = utils.load_config(config_path)
 
         # Extract high-level parameters from config
         n_machines = config["job_shop"]["n_machines"]
@@ -135,18 +133,6 @@ class JobShopRandomParams(JobShopParams):
             i: config["fixed_params"]["demand_per_job"] for i in range(0, n_jobs + 1)
         }
         self.shift_time = config["shift"]["shift_time"]
-
-    def _load_config(self, config_path: str) -> dict:
-        """Load configuration from YAML file"""
-
-        script_dir = Path(__file__).parent
-        os.chdir(script_dir)
-        config_file = script_dir / config_path
-        if not config_file.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
-
-        with open(config_file, "r") as file:
-            return yaml.safe_load(file)
 
     def _random_times(self, machines, jobs, t_span):
         """Generates random processing times for each job on each machine."""

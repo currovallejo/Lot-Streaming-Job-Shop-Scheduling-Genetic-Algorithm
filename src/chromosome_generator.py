@@ -13,8 +13,8 @@ import random
 import numpy as np
 
 
-# --------- OTHER PYTHON FILES USED ---------
-import params
+# --------- src/ MODULES ---------
+from . import params
 
 # --------- CHROMOSOME GENERATOR ---------
 

@@ -15,9 +15,9 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
-# --------- OTHER PYTHON FILES USED ---------
-import params
-import plot
+# --------- src/ MODULES ---------
+from . import params
+from . import plot
 
 # --------- DECODER ---------
 

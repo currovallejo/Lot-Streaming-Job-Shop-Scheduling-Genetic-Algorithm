@@ -14,16 +14,11 @@ import numpy as np
 import random
 import copy
 from deap import tools
-from typing import List, Tuple
+from typing import Tuple
 
-# --------- OTHER PYTHON FILES USED ---------
-import params
-
-# --------- TYPE ALIASES ---------
-Chromosome = Tuple[np.ndarray, List[Tuple[int, int]]]
-LHS = np.ndarray
-RHS = List[Tuple[int, int]]
-OperationsIndices = List[int]
+# --------- src/ MODULES ---------
+from . import params
+from .types import Chromosome, RHS
 
 # --------- GENETIC OPERATORS ---------
 
@@ -111,6 +106,9 @@ class LotStreamingOperators:
         """
         Populate the master_ops attribute  with a mapping from
         operation-index → (job, lot), based on problem parameters.
+        
+        This mapping allows decoding flat operations 1D lists back into the RHS
+        chromosome format.
 
         Args:
             problem_params: Contains
