@@ -30,7 +30,7 @@ df_results = GA.js_decoder.get_schedule_df_from_solution(best_individual)
 plotter = Plotter(problem_params)
 plotter.plot_gantt(df_results)
 
-# --------- GENETIC ALGORITHM (CHANGE FOR DIFFERENT GA CONFIGURATIONS) ---------
+# --------- LEGACY MAIN ---------
 # Genetic algorithm
 # start = time.time()
 # current_fitness, best_individual = run(
