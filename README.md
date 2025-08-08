@@ -1,5 +1,7 @@
 **DEPRECATED**. After refactor the whole codebase, need update.
 
+**Important!!** --> needed Python 3.11.4 to run!
+
 # GENETIC ALGORITHM for LOT STREAMING in JOB SHOP SCHEDULING 
 Set of modules for solving the lot streaming job shop scheduling problem through a genetic algorithm.
 
