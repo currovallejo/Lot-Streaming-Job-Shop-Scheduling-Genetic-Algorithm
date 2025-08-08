@@ -106,7 +106,7 @@ class LotStreamingOperators:
         """
         Populate the master_ops attribute  with a mapping from
         operation-index → (job, lot), based on problem parameters.
-        
+
         This mapping allows decoding flat operations 1D lists back into the RHS
         chromosome format.
 

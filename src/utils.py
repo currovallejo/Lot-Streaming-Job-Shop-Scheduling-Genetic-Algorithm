@@ -42,5 +42,6 @@ def init_logger():
         level=logging.INFO,
         format="%(asctime)s.%(msecs)03d %(message)s",
         datefmt="%H:%M:%S",
+        force=True,
     )
     return logging.getLogger()

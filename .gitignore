@@ -3,4 +3,6 @@ __pycache__
 .vscode
 semi_legacy
 tests
+results
+.vscode
 

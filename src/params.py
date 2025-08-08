@@ -313,8 +313,3 @@ class JobShopRandomParams(JobShopParams):
             print(trabajo, "|", self.seq[trabajo])
             trabajo_list.append(trabajo)
             seq_list.append(self.seq[trabajo])
-
-
-if __name__ == "__main__":
-    params = JobShopRandomParams(config_path="config/jobshop/js_params_01.yaml")
-    params.print_jobshop_params()

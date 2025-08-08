@@ -17,7 +17,7 @@ import numpy as np
 from typing import Tuple
 
 # --------- src/ MODULES ---------
-from . import chromosome_generator
+from .chromosome_generator import ChromosomeGenerator
 from . import decoder
 from . import plot
 from .params import JobShopRandomParams
@@ -58,7 +58,7 @@ class GeneticAlgorithm:
         }
 
     @timed
-    def run(self):
+    def run(self) -> Tuple[float, list, Chromosome]:
         """
         Run the genetic algorithm for the Lot Streaming Job Shop Scheduling Problem.
         Returns:
@@ -93,13 +93,13 @@ class GeneticAlgorithm:
             # Track the best fitness of the current population
             best_population_fitness = min(ind.fitness.values[0] for ind in population)
 
-            # Log the best fitness obtaines until now
+            # Increase mutation rates if no improvement
+            self._update_mutation_rates(best_fitness, best_population_fitness)
+
+            # Log the best fitness obtained until now
             if best_population_fitness < best_fitness:
                 best_fitness = best_population_fitness
             best_fitness_history.append(best_fitness)
-
-            # Increase mutation rates if no improvement
-            self._update_mutation_rates(best_fitness, best_population_fitness)
 
             # Diversify population if needed
             if (
@@ -125,8 +125,8 @@ class GeneticAlgorithm:
         Returns:
             A tuple containing the fitness value (makespan).
         """
-        js_decoder = decoder.JobShopDecoder(self.problem_params)
-        return (js_decoder.get_fitness(encoded_solution=individual),)
+        self.js_decoder = decoder.JobShopDecoder(self.problem_params)
+        return (self.js_decoder.get_fitness(encoded_solution=individual),)
 
     def _create_individual_factory(self) -> callable:
         """
@@ -134,7 +134,8 @@ class GeneticAlgorithm:
         Returns:
             A function that generates a new individual.
         """
-        return lambda: chromosome_generator.generate_chromosome(self.problem_params)
+        chromosome_generator = ChromosomeGenerator(self.problem_params)
+        return chromosome_generator.generate
 
     def _setup_deap(self) -> base.Toolbox:
         """
@@ -156,7 +157,7 @@ class GeneticAlgorithm:
         toolbox.register("evaluate", self._eval_fitness)
         return toolbox
 
-    def _apply_crossover(self, offspring):
+    def _apply_crossover(self, offspring: list[Chromosome]):
         """
         Apply crossover to the offspring.
         Args:
@@ -172,7 +173,7 @@ class GeneticAlgorithm:
                     del ind1.fitness.values
                     del ind1.fitness.values
 
-    def _apply_mutation(self, offspring):
+    def _apply_mutation(self, offspring: list[Chromosome]):
         """
         Apply mutation to the offspring.
         Args:
@@ -186,7 +187,9 @@ class GeneticAlgorithm:
                     ind[:] = mutant
                     del ind.fitness.values
 
-    def _diversify_population(self, population, toolbox):
+    def _diversify_population(
+        self, population: list[Chromosome], toolbox: base.Toolbox
+    ) -> list[Chromosome]:
         """
         Kills half of the population and introduces new random individuals
         Args:
@@ -205,7 +208,9 @@ class GeneticAlgorithm:
         self.no_improve_gen = 0
         return new_pop
 
-    def _update_mutation_rates(self, best_fitness, best_population_fitness: float):
+    def _update_mutation_rates(
+        self, best_fitness: float, best_population_fitness: float
+    ):
         """
         Reset or grow the mutation probabilities based on improvement.
         """
@@ -213,7 +218,7 @@ class GeneticAlgorithm:
         cap = self.config.get("mutation_cap", 0.8)
         factor = self.config.get("mutation_growth", 1.05)
 
-        if best_population_fitness <best_fitness:
+        if best_population_fitness < best_fitness and self.no_improve_gen > 0:
             # reset everything
             best_fitness = best_population_fitness
             self.no_improve_gen = 0
@@ -229,13 +234,7 @@ class GeneticAlgorithm:
         self.mut_probs["msi"] = new_rate
 
 
-def create_individual_factory(problem_params: JobShopRandomParams):
-    def create_individual():
-        return chromosome_generator.generate_chromosome(problem_params)
-
-    return create_individual
-
-
+# --------- LEGACY RUN FUNCTION ---------
 def run(
     problem_params: JobShopRandomParams,
     population_size: int,

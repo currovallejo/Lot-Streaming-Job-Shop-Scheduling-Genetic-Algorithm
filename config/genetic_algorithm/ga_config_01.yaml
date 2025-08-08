@@ -1,0 +1,32 @@
+# Genetic Algorithm Parameters Configuration
+population_size: 100
+num_generations: 100
+
+# crossover probabilities
+crossover:
+  spc1: 0.8
+  spc2: 0.8
+  pmx: 0.8
+  ox: 0.8
+  job_level: 0.8
+
+# mutation probabilities
+mutation:
+  sstm: 0.2
+  msi: 0.2
+
+# selection method
+selection:
+  method: "tournament"  
+  tournament_size: 3
+
+# mutation probabilities increase strategy
+# can be used with all cases, but was designed for **independent setup + shift constraints**
+mutation_cap: 0.8  # Maximum mutation probability before reset
+mutation_growth:  1.03  # Growth factor for mutation probabilities, should increase for **independent setup + shift constraints**
+
+# population diversification strategy
+# can be used with all cases, but was designed for **independent setup + shift constraints**
+diversification:
+  enabled: true # Enable this strategy
+  threshold: 10 # Number of generations without improvement before triggering diversification, duplicated after each step
