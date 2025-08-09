@@ -7,14 +7,12 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
 # --- External project types (typing only) ---
 from ..params import JobShopRandomParams
+from ..domain import ScheduledOperation
 
 # --- Internal layers ---
-from .domain import GanttConfig
-from .mappers import map_dataframe
 from .services import build_gantt_figure, build_evolution_figure
 from .infra import DefaultFilenamePolicy, HtmlFigureExporter, PngFigureExporter
 
@@ -42,14 +40,13 @@ class GanttPlotter:
 
     def plot_gantt(
         self,
-        df_results: pd.DataFrame,
+        ops: Sequence[ScheduledOperation],
         save: bool = True,
         open: bool = True,
     ) -> None:
         ts = datetime.now()
-        ops = map_dataframe(df_results)
-        cfg = GanttConfig(shift_time=self.params.shift_time, auto_open=open)
-        fig = build_gantt_figure(ops, cfg)
+        shift_time = self.params.shift_time
+        fig = build_gantt_figure(ops, shift_time)
 
         if save:
             base = self._name_policy.name_for_gantt(ts)
@@ -112,11 +109,11 @@ class Plotter:
 
     def plot_gantt(
         self,
-        df_results: pd.DataFrame,
+        ops: Sequence[ScheduledOperation],
         save: bool = True,
         open: bool = True,
     ):
-        return self.gantt_plotter.plot_gantt(df_results, save, open)
+        return self.gantt_plotter.plot_gantt(ops, save, open)
 
     def plot_solution_evolution(
         self,

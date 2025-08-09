@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import List
 import pandas as pd
 
-from .domain import OperationId, TimeWindow, ScheduledOperation
+from ..domain import OperationId, TimeWindow, ScheduledOperation
 
 
 # --- Public API ---
+
 
 def map_dataframe(df_results: pd.DataFrame) -> List[ScheduledOperation]:
     """

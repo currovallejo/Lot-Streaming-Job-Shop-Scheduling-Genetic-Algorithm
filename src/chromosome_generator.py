@@ -15,7 +15,7 @@ import numpy as np
 
 # --------- src/ MODULES ---------
 from . import params
-from .types import Chromosome
+from .shared.types import Chromosome
 
 
 # --------- CHROMOSOME GENERATOR ---------

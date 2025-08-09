@@ -9,7 +9,20 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from .domain import ScheduledOperation, GanttConfig
+from ..domain import ScheduledOperation
+
+
+# --- Private label helpers (presentation-only) ---
+def _product_label(job: int) -> str:
+    return f"P {job}"
+
+
+def _resource_label(machine: int) -> str:
+    return f"M {machine}"
+
+
+def _text_label(job: int, lot: int) -> str:
+    return f"P{job} - L{lot}"
 
 
 # --- Gantt figure ---
@@ -17,7 +30,7 @@ from .domain import ScheduledOperation, GanttConfig
 
 def build_gantt_figure(
     ops: Sequence[ScheduledOperation],
-    cfg: GanttConfig,
+    shift_time: int,
     title: str = "Job Shop Schedule with Lot Streaming",
 ) -> go.Figure:
     """
@@ -30,9 +43,9 @@ def build_gantt_figure(
     # --- View-model dataframe for plotting (durations from domain) ---
     df = pd.DataFrame(
         {
-            "Products": [op.product_label for op in ops],
-            "Resources": [op.resource_label for op in ops],
-            "Text": [op.text_label for op in ops],
+            "Products": [_product_label(op.id.job) for op in ops],
+            "Resources": [_resource_label(op.id.machine) for op in ops],
+            "Text": [_text_label(op.id.job, op.id.lot) for op in ops],
             "start_time": [op.time.start for op in ops],
             "completion_time": [op.time.completion for op in ops],
             "setup_start_time": [op.time.setup_start for op in ops],
@@ -54,6 +67,7 @@ def build_gantt_figure(
         title=title,
         hover_data={
             "start_time": True,
+            "proc_duration": False,
             "completion_time": True,
             "lot_size": True,
             "Text": False,
@@ -82,7 +96,7 @@ def build_gantt_figure(
             fig.add_trace(tr)
 
     # --- Axes and layout ---
-    fig.update_xaxes(type="linear", tick0=0, dtick=cfg.shift_time, title="Time")
+    fig.update_xaxes(type="linear", tick0=0, dtick=shift_time, title="Time")
     fig.update_yaxes(
         categoryorder="array",
         categoryarray=sorted(df["Resources"].unique()),

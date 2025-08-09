@@ -18,11 +18,11 @@ from typing import Tuple
 
 # --------- src/ MODULES ---------
 from .chromosome_generator import ChromosomeGenerator
-from . import decoder
+from .scheduling import Scheduler
 from .params import JobShopRandomParams
 from .genetic_operators import LotStreamingOperators
-from .types import Chromosome
-from .utils import load_config, timed
+from .shared.types import Chromosome
+from .shared.utils import load_config, timed
 
 # --------- GENETIC ALGORITHM ---------
 
@@ -125,8 +125,8 @@ class GeneticAlgorithm:
         Returns:
             A tuple containing the fitness value (makespan).
         """
-        self.js_decoder = decoder.JobShopDecoder(self.problem_params)
-        return (self.js_decoder.get_fitness(encoded_solution=individual),)
+        self.scheduler = Scheduler(self.problem_params)
+        return (self.scheduler.get_fitness(encoded_solution=individual),)
 
     def _create_individual_factory(self) -> callable:
         """

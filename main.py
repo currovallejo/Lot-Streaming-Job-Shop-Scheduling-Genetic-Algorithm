@@ -1,7 +1,7 @@
 # --------- OTHER PYTHON FILES USED ---------
 import src.params as params
 from src.genetic_algorithm import GeneticAlgorithm
-from src.utils import init_logger
+from src.shared.utils import init_logger
 
 # from src.plot import Plotter
 from src.plotting import Plotter
@@ -22,32 +22,12 @@ makespan, best_fitness_history, best_individual = GA.run()
 # Print results
 print("Best makespan found:", makespan)
 if problem_params.shift_constraints:
-    penalty = GA.js_decoder.decode(best_individual)[1]
+    penalty = GA.scheduler.decode(best_individual)[1]
     print("Penalty:", penalty)
 print("Best fitness history:", best_fitness_history)
 
 # Plotting results
-df_results = GA.js_decoder.get_schedule_df_from_solution(best_individual)
+ops = GA.scheduler.build_operations(best_individual)
 plotter = Plotter(problem_params)
-plotter.plot_gantt(df_results, save=True, open=True)
+plotter.plot_gantt(ops, save=True, open=True)
 plotter.plot_solution_evolution(best_fitness_history, save=True, open=True)
-
-# --------- LEGACY MAIN ---------
-# Genetic algorithm
-# start = time.time()
-# current_fitness, best_individual = run(
-#     my_params,
-#     population_size=100,
-#     num_generations=100,
-#     plotting=True,
-# )
-# end = time.time()
-# print("Time elapsed: ", end - start, "seconds")
-# print("Current fitness: ", current_fitness)
-# if my_params.shift_constraints:
-#     js_decoder = decoder.JobShopDecoder(my_params)
-#     makespan, penalty, y, c, chromosome_mod = js_decoder.decode(best_individual)
-#     print("Makespan: ", makespan)
-#     print("Penalty: ", penalty)
-# print(best_individual)
-# print(chromosome_mod)

@@ -18,7 +18,7 @@ from typing import Tuple
 
 # --------- src/ MODULES ---------
 from . import params
-from .types import Chromosome, RHS
+from .shared.types import Chromosome, RHS
 
 # --------- GENETIC OPERATORS ---------
 

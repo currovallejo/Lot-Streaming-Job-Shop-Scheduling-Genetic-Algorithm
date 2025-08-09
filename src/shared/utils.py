@@ -9,7 +9,7 @@ def load_config(config_path: str) -> dict:
     Load a YAML configuration file, resolving paths relative to the project root.
     Raises FileNotFoundError if the file does not exist.
     """
-    project_root = Path(__file__).resolve().parent.parent
+    project_root = Path(__file__).resolve().parents[2]
     config_file = project_root / config_path
     if not config_file.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_file}")

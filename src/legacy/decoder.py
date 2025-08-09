@@ -16,8 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
 # --------- src/ MODULES ---------
-from . import params
-from . import plot
+from ..import params
 
 # --------- DECODER ---------
 

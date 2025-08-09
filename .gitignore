@@ -1,8 +1,8 @@
-LSJSP-legacy
 __pycache__
+.pytest_cache
 .vscode
+.venv
 semi_legacy
-tests
+tests_legacy
 results
-.vscode
 

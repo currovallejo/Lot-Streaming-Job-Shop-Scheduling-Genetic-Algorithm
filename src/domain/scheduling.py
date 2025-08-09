@@ -1,10 +1,13 @@
+# --- Core scheduling domain ---
+
 from __future__ import annotations
 from dataclasses import dataclass
 
 
-# --- Value Objects ---
 @dataclass(frozen=True)
 class OperationId:
+    """Unique identifier for an operation in the job shop."""
+
     job: int
     machine: int
     lot: int
@@ -12,6 +15,8 @@ class OperationId:
 
 @dataclass(frozen=True)
 class TimeWindow:
+    """Time window for an operation, including setup and processing times."""
+
     setup_start: int
     start: int
     completion: int
@@ -28,6 +33,8 @@ class TimeWindow:
 
 @dataclass(frozen=True)
 class ScheduledOperation:
+    """Represents a scheduled operation with its ID, time window, and lot size."""
+
     id: OperationId
     time: TimeWindow
     lot_size: int
