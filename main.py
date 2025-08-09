@@ -1,12 +1,10 @@
-# --------- LIBRARIES ---------
-import time
-
 # --------- OTHER PYTHON FILES USED ---------
 import src.params as params
-import src.decoder as decoder
 from src.genetic_algorithm import GeneticAlgorithm
-from src.utils import timed, init_logger
-from src.plot import Plotter
+from src.utils import init_logger
+
+# from src.plot import Plotter
+from src.plotting import Plotter
 
 
 # --------- MAIN FUNCTIONALITY ---------
@@ -23,12 +21,16 @@ makespan, best_fitness_history, best_individual = GA.run()
 
 # Print results
 print("Best makespan found:", makespan)
+if problem_params.shift_constraints:
+    penalty = GA.js_decoder.decode(best_individual)[1]
+    print("Penalty:", penalty)
 print("Best fitness history:", best_fitness_history)
 
 # Plotting results
 df_results = GA.js_decoder.get_schedule_df_from_solution(best_individual)
 plotter = Plotter(problem_params)
-plotter.plot_gantt(df_results)
+plotter.plot_gantt(df_results, save=True, open=True)
+plotter.plot_solution_evolution(best_fitness_history, save=True, open=True)
 
 # --------- LEGACY MAIN ---------
 # Genetic algorithm
