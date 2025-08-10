@@ -102,9 +102,7 @@ class LotStreamingOperators:
 
     # ---- CONVERSION METHODS FOR RHS (Job Sequences) ---------
 
-    def build_master_ops_dict(
-        self, problem_params: JobShopRandomParams
-    ) -> None:
+    def build_master_ops_dict(self, problem_params: JobShopRandomParams) -> None:
         """
         Populate the master_ops attribute  with a mapping from
         operation-index → (job, lot), based on problem parameters.

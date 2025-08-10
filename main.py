@@ -7,9 +7,7 @@ from plotting import Plotter
 
 # --------- MAIN DEMO ---------
 logger = init_logger()
-problem_params = JobShopRandomParams(
-    config_path="config/jobshop/js_params_01.yaml"
-)
+problem_params = JobShopRandomParams(config_path="config/jobshop/js_params_01.yaml")
 problem_params.print_jobshop_params(save_to_excel=False)
 
 GA = GeneticAlgorithm(

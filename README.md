@@ -1,4 +1,4 @@
-![Tests](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/tests.yaml/badge.svg?branch=ci/gh-actions)
+![Tests](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/test.yaml/badge.svg?branch=ci/gh-actions)
 ![Ruff](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/ruff.yaml/badge.svg?branch=ci/gh-actions)
 
 

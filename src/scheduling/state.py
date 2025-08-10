@@ -4,7 +4,7 @@ State containers and simple builders (routes, precedences, time arrays).
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple, Iterable
+from typing import Dict, List, Tuple, Iterable
 import numpy as np
 
 
