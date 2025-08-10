@@ -2,32 +2,29 @@ name: Mypy
 
 on:
   push:
-    branches:
-      - "**"
+    branches: ['**']
   pull_request:
-    branches:
-      - "**"
+  workflow_dispatch:
 
 jobs:
   mypy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11.4
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11.4'
 
       - name: Install Poetry
-        uses: abatilo/actions-poetry@v2
+        uses: snok/install-poetry@v1
         with:
-          poetry-version: "1.8.3"
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-      - name: Install dependencies
-        run: poetry install
+      - name: Install dependencies (with dev)
+        run: poetry install --with dev --no-interaction --no-ansi
 
       - name: Run mypy
         run: poetry run mypy src/
