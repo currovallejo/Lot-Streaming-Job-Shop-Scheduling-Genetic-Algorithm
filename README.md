@@ -2,8 +2,9 @@
 
 # Lot Streaming Job Shop Scheduling Genetic Algorithm
 
-![Tests](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/test.yaml/badge.svg)
+![Test](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/test.yaml/badge.svg)
 ![Ruff](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/ruff.yaml/badge.svg)
+![Mypy](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/mypy.yaml/badge.svg)
 
 This repository implements a genetic algorithm to solve the **Lot Streaming Job Shop Scheduling Problem (LSJSP)**, , with support for **sequence-dependent setup times** and **shift constraints**. It includes modules for generating random problem instances, decoding chromosomes into semi-active schedules, and visualizing results.
 
