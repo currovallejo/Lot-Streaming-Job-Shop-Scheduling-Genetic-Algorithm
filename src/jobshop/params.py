@@ -1,9 +1,15 @@
 """
-DEFINITION OF CLASSES TO HANDLE JOBSHOP PARAMETERS
-----------------------------------------------------------------------
-- Classes, methods and functions are defined to facilitate the handling of jobshop
-parameters in the script where the model is defined.
-- Based in code written by Bruno Scalia C. F. Leite
+Job Shop parameter generation and container for Lot Streaming scheduling.
+
+This module defines classes to build and manage job shop parameters (machines, jobs,
+operations routes, processing and setup times, number of lots, demand and optional shift
+constraints) used by the Lot Streaming Job Shop Scheduling Genetic Algorithm. It supports
+random instance generation from a YAML configuration with optional sequence-dependent
+setup times and shift constraints.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejogt
+Github: https://github.com/currovallejog
 """
 
 import numpy as np
@@ -14,6 +20,8 @@ from shared import utils
 
 
 class JobShopParams:
+    """White label class for job-shop parameters."""
+
     def __init__(
         self,
         machines: Sequence,
@@ -51,13 +59,11 @@ class JobShopParams:
 
 
 class JobShopRandomParams(JobShopParams):
-    def __init__(self, config_path: str = "config/jobshop_config.yaml"):
+    def __init__(self, config_path: str = "config/jobshop/js_params_01.yaml"):
         """Class for generating job-shop parameters from YAML config
-
-        Parameters
-        ----------
-        config_path : str, optional
-            Path to YAML configuration file, by default "config/jobshop_config.yaml"
+        Args:
+            config_path : str, optional
+                Path to YAML configuration file
         """
         config = utils.load_config(config_path)
 
@@ -91,17 +97,18 @@ class JobShopRandomParams(JobShopParams):
         }
         self.shift_time = config["shift"]["shift_time"]
 
-    def _random_times(self, machines, jobs, t_span):
+    def _random_times(self, machines: range, jobs: range, t_span: tuple) -> dict:
         """Generates random processing times for each job on each machine."""
         np.random.seed(self.seed)
         t = np.arange(t_span[0], t_span[1])
         return {(m, j): np.random.choice(t) for m in machines for j in jobs}
 
-    def _random_sequences(self, machines, jobs):
+    def _random_sequences(self, machines: range, jobs: range) -> dict:
+        """Generates random sequences of machines for each job."""
         np.random.seed(self.seed)
         return {j: self._generate_random_sequence(machines) for j in jobs}
 
-    def _generate_random_sequence(self, machines):
+    def _generate_random_sequence(self, machines: range) -> list:
         """Generates a random sequence (route) of machines for a job."""
         # Decide on the length of the sequence
         # (can be any number between 1 and len(machines))
@@ -113,7 +120,7 @@ class JobShopRandomParams(JobShopParams):
 
         return list(sequence)
 
-    def _random_setup(self, machines, jobs, t_span_setup):
+    def _random_setup(self, machines: range, jobs: range, t_span_setup: tuple) -> dict:
         """Generates random setup times for each job on each machine."""
         if self.is_setup_dependent:
             return self._random_sequence_dependent_setup(machines, jobs, t_span_setup)
@@ -126,8 +133,8 @@ class JobShopRandomParams(JobShopParams):
             return {(m, j): np.random.choice(t) for m in machines for j in jobs}
 
     def _random_sequence_dependent_setup(
-        self, machines, jobs, t_span_setup
-    ):  # sequence dependent setup times
+        self, machines: range, jobs: range, t_span_setup: tuple
+    ) -> dict:  # sequence dependent setup times
         """
         Generates random SEQUENCE DEPENDENT setup times for each job on each machine.
 
@@ -215,7 +222,7 @@ class JobShopRandomParams(JobShopParams):
 
     def _print_params_sequence_dependent_setup_times(self):
         print(
-            "[SEQ DEPENDENT SETUP TIMES] row(k) = predecessor | column(j) = successor  \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in setup dictionary is j=1 (successor) or k=1 (predecessor) \n the setup time associated with each job on each machine is:"
+            "[SEQ DEPENDENT SETUP TIMES] row(k) = predecessor | column(j) = successor \n IMPORTANT! indexes are 1 unit more. \n IMPORTANT! For job 0, index in setup dictionary is j=1 (successor) or k=1 (predecessor) \n the setup time associated with each job on each machine is:"
         )
         for m in self.machines:
             print("Machine ", m)

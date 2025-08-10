@@ -1,5 +1,3 @@
-"""Test consistency between legacy and new ChromosomeDecoder implementations."""
-
 import numpy as np
 
 from legacy import ChromosomeDecoder
@@ -7,6 +5,7 @@ from scheduling import Scheduler
 
 
 def test_decoder_v1_vs_v2_consistency(problem_params, chromosome):
+    """Test consistency between legacy and new ChromosomeDecoder implementations."""
     # Legacy decoder
     legacy = ChromosomeDecoder(problem_params)
     mk1, pen1, y1, c1, semi1 = legacy.decode(chromosome)

@@ -1,3 +1,16 @@
+"""
+Scheduling application for Lot Streaming Job Shop Scheduling Problem.
+
+This module provides a unified scheduling interface that orchestrates chromosome decoding,
+fitness evaluation, and schedule generation. It serves as the main entry point for
+converting genetic algorithm solutions into feasible schedules, calculating makespan
+and penalties, and building domain operations for visualization purposes.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejog
+Github: https://github.com/currovallejog
+"""
+
 from __future__ import annotations
 import pandas as pd
 from .decoder import ChromosomeDecoder
@@ -13,6 +26,11 @@ class Scheduler:
     """
 
     def __init__(self, problem_params: JobShopRandomParams):
+        """
+        Initialize the scheduler with job shop parameters.
+        Args:
+            problem_params (JobShopRandomParams): Parameters for the job shop problem.
+        """
         self.problem_params = problem_params
         self._assembler = OperationAssembler(problem_params)
         self._decoder = ChromosomeDecoder(problem_params)

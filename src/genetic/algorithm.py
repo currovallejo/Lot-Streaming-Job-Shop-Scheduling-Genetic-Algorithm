@@ -1,22 +1,22 @@
 """
-Created on Aug 08 2024
-Refactored on Aug 2025
+Genetic Algorithm implementation for Lot Streaming Job Shop Scheduling Problem.
+
+This module implements a genetic algorithm using the DEAP framework to solve the
+Lot Streaming Job Shop Scheduling Problem. The algorithm optimizes job scheduling
+to minimize makespan through evolutionary operators including crossover, mutation,
+selection, and population diversification.
 
 Author: Francisco Vallejo
 LinkedIn: www.linkedin.com/in/franciscovallejogt
 Github: https://github.com/currovallejog
-
-Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
-Script: genetic_algorithm.py - Genetic Algorithm
 """
 
-# --------- LIBRARIES ---------
 from deap import base, creator, tools
 import time
 import numpy as np
 from typing import Tuple, Callable
+from logging import Logger
 
-# --------- src/ MODULES ---------
 from .chromosome import ChromosomeGenerator
 from scheduling import Scheduler
 from jobshop import JobShopRandomParams
@@ -28,7 +28,18 @@ from shared.utils import load_config, timed
 
 
 class GeneticAlgorithm:
-    def __init__(self, problem_params: JobShopRandomParams, logger, config_path: str):
+    def __init__(
+        self, problem_params: JobShopRandomParams, logger: Logger, config_path: str
+    ):
+        """
+        Initialize the genetic algorithm with problem parameters, logger, and
+        configuration path.
+        Args:
+            problem_params (JobShopRandomParams): Parameters for the job shop problem.
+            logger (Logger): Logger instance for logging information.
+            config_path (str): Path to the configuration file.
+        """
+
         self.problem_params = problem_params
         self.logger = logger
         self.config = load_config(config_path)

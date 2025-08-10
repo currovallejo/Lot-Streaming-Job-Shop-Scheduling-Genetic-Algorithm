@@ -1,15 +1,16 @@
 """
-Created on Aug 05 2024
+[LEGACY] Chromosome Decoder Module. ONLY FOR TESTING PURPOSES.
+
+This module implements chromosome decoding functionality that transforms genetic
+algorithm solutions into feasible job shop schedules. It handles lot size distribution,
+operation sequencing, setup times (dependent/independent), shift constraints, and
+calculates makespan and penalties for the Lot Streaming Job Shop Scheduling Problem.
 
 Author: Francisco Vallejo
 LinkedIn: www.linkedin.com/in/franciscovallejogt
 Github: https://github.com/currovallejog
-
-Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
-Script: decoder.py - decodification of the chromosome to the solution
 """
 
-# --------- LIBRARIES ---------
 import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
@@ -268,6 +269,7 @@ class ChromosomeDecoder(SolutionDecoder):
             return _lot_processing_time() > shift_time
 
         def _fit_within_predecessor_shift() -> bool:
+            """Check if the lot can fit within the previous same job lot shift time."""
             if is_setup_dependent:
                 return (
                     _completion_time_in_current_machine() % shift_time
@@ -465,7 +467,7 @@ class ChromosomeDecoder(SolutionDecoder):
         return makespan, penalty, start_time, completion_time, semi_encoded_solution
 
     def get_fitness(self, encoded_solution: Any) -> float:
-        # Implement the fitness calculation specific to Job Shop Scheduling
+        """Interface method to get the fitness of the encoded solution."""
         return self.decode(encoded_solution)[0] + self.decode(encoded_solution)[1]
 
     def get_lot_processing_start_times(

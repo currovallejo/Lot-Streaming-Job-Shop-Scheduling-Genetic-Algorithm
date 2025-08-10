@@ -1,5 +1,14 @@
 """
-State containers and simple builders (routes, precedences, time arrays).
+State management for Lot Streaming Job Shop Scheduling Problem.
+
+This module defines data structures and state management components for the chromosome
+decoder. It provides immutable static data containers, mutable dynamic state objects,
+and builder functions for managing scheduling state during the decoding process of
+the each chromosome.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejogt
+Github: https://github.com/currovallejog
 """
 
 from __future__ import annotations
@@ -8,7 +17,7 @@ from typing import Dict, List, Tuple, Iterable
 import numpy as np
 
 
-# --- DTOs --------------------------------------------------------------------
+# --- DTOs (Data Tansfer Objects) ------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -79,6 +88,15 @@ def build_routes(
     jobs: Iterable,
     lots: Iterable,
 ) -> Dict[Tuple[int, int], List[int]]:
+    """
+    Build routes for each lot from job sequence
+    Args:
+        - sequence: job -> list of machines in order
+        - jobs: iterable of job ids
+        - lots: iterable of lot ids
+    Returns:
+        - routes: {(job, lot): list of machines in the route}
+    """
     return {(j, u): list(sequence[j]) for j in jobs for u in lots}
 
 
@@ -86,6 +104,14 @@ def build_precedences(
     machines: Iterable,
     is_setup_dependent: bool,
 ) -> Dict[int, List[Tuple[int, int]]]:
+    """
+    Build precedence lists for each machine.
+    Args:
+        - machines: iterable of machine ids
+        - is_setup_dependent: flag indicating if setup times are dependent
+    Returns:
+        - precedences: {machine: [(job, lot), ...]}
+    """
     preds: Dict[int, List[Tuple[int, int]]] = {}
     for m in machines:
         preds[m] = [(-1, 0)] if is_setup_dependent else []
@@ -95,6 +121,16 @@ def build_precedences(
 def build_time_arrays(
     n_machines: int, n_jobs: int, n_lots: int
 ) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Build empty time arrays for setup start and completion times.
+    Args:
+        - n_machines: number of machines
+        - n_jobs: number of jobs
+        - n_lots: number of lots per job
+    Returns:
+        - setup_start: np.ndarray [M, J, U]
+        - completion: np.ndarray [M, J, U]
+    """
     return (
         np.full((n_machines, n_jobs, n_lots), 0, dtype=int),
         np.full((n_machines, n_jobs, n_lots), 0, dtype=int),

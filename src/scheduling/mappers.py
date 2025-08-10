@@ -1,5 +1,15 @@
-# src/scheduling/mappers.py
-# --- Domain mappers: tensors -> ScheduledOperation list ---
+"""
+Mapping utilities for Lot Streaming Job Shop Scheduling Problem.
+
+This module provides mapping functionality to transform schedule tensors and arrays
+into domain objects and DataFrames. It includes assemblers for converting decoded
+solutions into ScheduledOperation objects and utilities for building schedule
+DataFrames from domain operations for analysis and visualization purposes.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejogt
+Github: https://github.com/currovallejog
+"""
 
 from __future__ import annotations
 from dataclasses import dataclass

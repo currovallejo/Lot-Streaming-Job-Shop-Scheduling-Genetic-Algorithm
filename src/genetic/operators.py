@@ -1,22 +1,23 @@
 """
-Created on Aug 09 2024
+Genetic operators for Lot Streaming Job Shop Scheduling Problem.
+
+This module implements custom genetic operators including crossover and mutation
+for the Lot Streaming Job Shop Scheduling Problem. It provides specialized operators
+for both left-hand side (lot sizes) and right-hand side (operation sequences) components
+of chromosomes, supporting various evolutionary strategies within the genetic algorithm.
 
 Author: Francisco Vallejo
 LinkedIn: www.linkedin.com/in/franciscovallejogt
 Github: https://github.com/currovallejog
-
-Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
-Script: genetic_operators.py - Genetic Operators for GA
 """
 
-# --------- LIBRARIES ---------
 import numpy as np
 import random
 import copy
 from deap import tools
 from typing import Tuple, List
 
-# --------- src/ MODULES ---------
+
 from jobshop import JobShopRandomParams
 from shared.types import Chromosome, RHS
 

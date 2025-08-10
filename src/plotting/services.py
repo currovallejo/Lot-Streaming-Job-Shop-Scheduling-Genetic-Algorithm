@@ -1,4 +1,15 @@
-# --- Application services: build figures (no I/O here) ---
+"""
+Plotting services for Lot Streaming Job Shop Scheduling Problem visualization.
+
+This module provides core plotting functionality for generating Gantt charts and fitness
+evolution plots. It transforms domain objects into visual representations using Plotly
+for interactive Gantt charts and Matplotlib for fitness evolution graphs, supporting
+the visualization of genetic algorithm solutions and optimization progress.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejogt
+Github: https://github.com/currovallejog
+"""
 
 from __future__ import annotations
 
@@ -35,7 +46,12 @@ def build_gantt_figure(
 ) -> go.Figure:
     """
     Create a Plotly Gantt-like bar chart from domain operations.
-    Pure function: returns a figure, does not write files or open windows.
+    Args:
+        ops (Sequence[ScheduledOperation]): List of scheduled operations to visualize.
+        shift_time (int): Shift time for the job shop.
+        title (str): Title for the Gantt chart.
+    Returns:
+        go.Figure: A Plotly figure object representing the Gantt chart.
     """
     if not ops:
         return go.Figure(layout_title_text=title)

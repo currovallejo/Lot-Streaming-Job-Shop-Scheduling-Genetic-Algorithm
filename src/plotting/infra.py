@@ -1,4 +1,15 @@
-# --- Infrastructure adapters: filenames and persistence (I/O) ---
+"""
+Infrastructure components for Lot Streaming Job Shop Scheduling Problem visualization.
+
+This module provides infrastructure classes for file naming policies and figure export
+functionality. It includes filename generators based on problem parameters and exporters
+for saving Plotly figures as HTML and Matplotlib figures as PNG files with automated
+directory management.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejogt
+Github: https://github.com/currovallejog
+"""
 
 from __future__ import annotations
 
@@ -27,6 +38,7 @@ class DefaultFilenamePolicy:
 
     # --- Base name builder ---
     def _base_name(self, prefix: str, now: datetime) -> str:
+        """Build a base name for the figure file."""
         stamp = now.strftime("%Y%m%d_%H%M%S")
         return (
             f"{prefix}_m{self.n_machines}"
@@ -59,6 +71,7 @@ class HtmlFigureExporter:
         self.output_dir = Path(__file__).resolve().parents[2] / "results" / "schedule"
 
     def export_html(self, fig: go.Figure, base_name: str, auto_open: bool) -> Path:
+        """Export a Plotly figure to HTML."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         path = self.output_dir / f"{base_name}.html"
         fig.write_html(path, auto_open=auto_open)
@@ -80,6 +93,7 @@ class PngFigureExporter:
         )
 
     def export_png(self, fig: MplFigure, base_name: str) -> Path:
+        """Export a Matplotlib figure to PNG."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         path = self.output_dir / f"{base_name}.png"
         fig.savefig(path, dpi=self.dpi)

@@ -1,11 +1,20 @@
 """
-Application: public decoder classes and orchestration.
+Chromosome decoder for Lot Streaming Job Shop Scheduling Problem.
+
+This module implements chromosome decoding functionality that transforms genetic
+algorithm solutions into feasible job shop schedules. It handles lot size distribution,
+operation sequencing, setup times, shift constraints, and calculates makespan and
+penalties for the Lot Streaming Job Shop Scheduling Problem optimization.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejog
+Github: https://github.com/currovallejog
 """
 
 from __future__ import annotations
 
 import numpy as np
-from typing import Any
+from typing import Tuple
 
 from jobshop import JobShopRandomParams
 from .lot_sizing import distribute_demand
@@ -32,9 +41,14 @@ class ChromosomeDecoder:
     """
 
     def __init__(self, problem_params: JobShopRandomParams):
+        """
+        Initialize the decoder with job shop parameters.
+        Args:
+            problem_params (JobShopRandomParams): Parameters for the job shop problem.
+        """
         self.problem_params = problem_params
 
-    def decode(self, encoded_solution: Any) -> Any:
+    def decode(self, encoded_solution: Tuple) -> Tuple:
         """
         Decode the encoded solution (chromosome) to a semi-active schedule.
 

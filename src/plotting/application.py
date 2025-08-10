@@ -1,29 +1,37 @@
-# --- Application layer: orchestrates domain, services, and infrastructure ---
+"""
+Plotting application for Lot Streaming Job Shop Scheduling Problem visualization.
+
+This module provides a unified plotting interface for visualizing genetic algorithm
+solutions including Gantt charts for job schedules and fitness evolution plots.
+It orchestrates figure generation, export functionality (HTML/PNG), and provides
+automated filename policies for saving visualization outputs.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejogt
+Github: https://github.com/currovallejog
+"""
 
 from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Sequence
-
 import matplotlib.pyplot as plt
 
-# --- External project types (typing only) ---
 from jobshop import JobShopRandomParams
 from domain import ScheduledOperation
-
-# --- Internal layers ---
 from .services import build_gantt_figure, build_evolution_figure
 from .infra import DefaultFilenamePolicy, HtmlFigureExporter, PngFigureExporter
-
-
-# --- Gantt orchestration ---
 
 
 class GanttPlotter:
     """Orchestrates: map DataFrame -> build Plotly figure -> show and/or save HTML."""
 
     def __init__(self, params: JobShopRandomParams):
+        """Initialize the Gantt plotter with job shop parameters
+        Args:
+            params (JobShopRandomParams): Parameters for the job shop problem.
+        """
         self.params = params
         self.show: bool = True
 
@@ -44,6 +52,12 @@ class GanttPlotter:
         save: bool = True,
         open: bool = True,
     ) -> None:
+        """Plot Gantt chart for the given operations.
+        Args:
+            ops (Sequence[ScheduledOperation]): List of scheduled operations to visualize.
+            save (bool): Whether to save the figure as HTML. Defaults to True.
+            open (bool): Whether to open the saved HTML file in a browser. Defaults to True.
+        """
         ts = datetime.now()
         shift_time = self.params.shift_time
         fig = build_gantt_figure(ops, shift_time)
@@ -62,6 +76,10 @@ class SolutionEvolutionPlotter:
     """Orchestrates: build Matplotlib figure -> export PNG."""
 
     def __init__(self, params: JobShopRandomParams):
+        """Initialize the solution evolution plotter with job shop parameters.
+        Args:
+            params (JobShopRandomParams): Parameters for the job shop problem.
+        """
         self.params = params
         self.show: bool = True
 
@@ -82,6 +100,14 @@ class SolutionEvolutionPlotter:
         save: bool = True,
         open: bool = True,
     ) -> Optional[Path]:
+        """Plot the evolution of the best fitness values of each generation.
+        Args:
+            best_fitness_history (Sequence[float]): List of best fitness value of each generation.
+            save (bool): Whether to save the figure as PNG. Defaults to True.
+            open (bool): Whether to open the saved PNG file. Defaults to True.
+        Returns:
+            Optional[Path]: Path to the saved PNG file if saved, otherwise None.
+        """
         ts = datetime.now()
         fig = build_evolution_figure(best_fitness_history)
         saved_path: Optional[Path] = None
@@ -103,6 +129,10 @@ class Plotter:
     """
 
     def __init__(self, params: JobShopRandomParams):
+        """Initialize the Plotter with job shop parameters.
+        Args:
+            params (JobShopRandomParams): Parameters for the job shop problem.
+        """
         self.params = params
         self.gantt_plotter = GanttPlotter(params)
         self.evolution_plotter = SolutionEvolutionPlotter(params)
@@ -112,7 +142,7 @@ class Plotter:
         ops: Sequence[ScheduledOperation],
         save: bool = True,
         open: bool = True,
-    ):
+    ) -> None:
         return self.gantt_plotter.plot_gantt(ops, save, open)
 
     def plot_solution_evolution(

@@ -1,5 +1,14 @@
 """
-Lot sizing: distribute demand into integer lot sizes (legacy behavior).
+Lot sizing module for Lot Streaming Job Shop Scheduling Problem.
+
+This module implements lot size distribution functionality that transforms genetic
+algorithm lot size genes into feasible lot sizes that satisfy job demands. It handles
+proportional distribution, residual allocation, and ensures integer lot sizes for
+the Lot Streaming Job Shop Scheduling Problem optimization.
+
+Author: Francisco Vallejo
+LinkedIn: www.linkedin.com/in/franciscovallejog
+Github: https://github.com/currovallejog
 """
 
 from __future__ import annotations
@@ -8,13 +17,24 @@ from typing import Iterable
 
 
 def distribute_demand(
-    lot_genes: np.ndarray,
+    lhs: np.ndarray,
     demand: dict,
     jobs: Iterable,
     lots: Iterable,
     n_lots: int,
 ) -> np.ndarray:
-    lot_sizes = np.copy(np.asarray(lot_genes, dtype=float))
+    """
+    Distribute the demand across the lot sizes based on the genes provided.
+    Args:
+        lhs (np.ndarray): Left-hand side of the chromosome representing lot sizes.
+        demand (dict): Dictionary containing the demand for each job.
+        jobs (Iterable): Iterable of job identifiers.
+        lots (Iterable): Iterable of lot identifiers.
+        n_lots (int): Number of lots.
+    Returns:
+        np.ndarray: Array of lot sizes adjusted to meet the demand.
+    """
+    lot_sizes = np.copy(np.asarray(lhs, dtype=float))
 
     for j in jobs:
         span = slice(n_lots * j, n_lots * (j + 1))

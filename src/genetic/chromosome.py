@@ -1,24 +1,23 @@
 """
+Chromosome generation module for Lot Streaming Job Shop Scheduling Problem.
+
+This module implements chromosome generators for the genetic algorithm that solves
+the Lot Streaming Job Shop Scheduling Problem. It provides classes to generate
+random chromosomes consisting of left-hand side (lot sizes) and right-hand side
+(job-lot operation sequences) components used in the evolutionary optimization process.
+
 Author: Francisco Vallejo
 LinkedIn: https://www.linkedin.com/in/franciscovallejogt/
 Github: https://github.com/currovallejog
-Website: https://franciscovallejo.pro
-
-Project: LOT STREAMING JOB SHOP SCHEDULING PROBLEM SOLVED WITH GA
-Script: chromosome-generator.py - generation of random chromosomes
 """
 
-# --------- LIBRARIES ---------
 import random
 import numpy as np
 
-
-# --------- src/ MODULES ---------
 from jobshop import JobShopRandomParams
 from shared.types import Chromosome
 
 
-# --------- CHROMOSOME GENERATOR ---------
 class LHSGenerator:
     """Generate the left-hand side of the chromosome, which is a numpy array
     representing the size of each lot.
@@ -72,7 +71,7 @@ class ChromosomeGenerator:
         right-hand side (RHS).
 
         Returns:
-            Chromosome: A list containing the LHS (numpy array) and RHS (list of tuples).
+            Chromosome: A list containing the LHS (numpy array) and RHS (list of tuples)
         """
         lhs = self.lhs_generator.generate()
         rhs = self.rhs_generator.generate()
