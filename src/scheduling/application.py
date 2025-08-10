@@ -1,9 +1,9 @@
 from __future__ import annotations
 import pandas as pd
-from .services import JobShopDecoder, build_schedule_times_df_from_ops
-from .mappers import OperationAssembler
+from .decoder import ChromosomeDecoder
+from .mappers import OperationAssembler, build_schedule_times_df_from_ops
 from ..domain import ScheduledOperation
-from ..params import JobShopRandomParams
+from ..jobshop import JobShopRandomParams
 from ..shared.types import Chromosome
 
 
@@ -15,7 +15,7 @@ class Scheduler:
     def __init__(self, problem_params: JobShopRandomParams):
         self.problem_params = problem_params
         self._assembler = OperationAssembler(problem_params)
-        self._decoder = JobShopDecoder(problem_params)
+        self._decoder = ChromosomeDecoder(problem_params)
 
     def decode(self, encoded_solution: Chromosome) -> tuple:
         """

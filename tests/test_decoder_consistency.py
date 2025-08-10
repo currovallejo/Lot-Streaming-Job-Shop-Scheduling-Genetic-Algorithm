@@ -1,14 +1,14 @@
-"""Test consistency between legacy and new JobShopDecoder implementations."""
+"""Test consistency between legacy and new ChromosomeDecoder implementations."""
 
 import numpy as np
 
-from src.legacy import JobShopDecoder
+from src.legacy import ChromosomeDecoder
 from src.scheduling import Scheduler
 
 
 def test_decoder_v1_vs_v2_consistency(problem_params, chromosome):
     # Legacy decoder
-    legacy = JobShopDecoder(problem_params)
+    legacy = ChromosomeDecoder(problem_params)
     mk1, pen1, y1, c1, semi1 = legacy.decode(chromosome)
 
     # New decoder

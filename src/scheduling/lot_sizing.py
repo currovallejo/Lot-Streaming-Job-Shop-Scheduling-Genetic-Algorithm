@@ -3,15 +3,15 @@ Lot sizing: distribute demand into integer lot sizes (legacy behavior).
 """
 
 from __future__ import annotations
-from typing import Sequence
 import numpy as np
+from typing import Iterable
 
 
 def distribute_demand(
     lot_genes: np.ndarray,
-    demand: Sequence[int],
-    jobs: Sequence[int],
-    lots: Sequence[int],
+    demand: dict,
+    jobs: Iterable,
+    lots: Iterable,
     n_lots: int,
 ) -> np.ndarray:
     lot_sizes = np.copy(np.asarray(lot_genes, dtype=float))

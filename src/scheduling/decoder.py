@@ -5,12 +5,10 @@ Application: public decoder classes and orchestration.
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 from typing import Any
 
-from .. import params as params_mod
+from .. import jobshop as params_mod
 from .lot_sizing import distribute_demand
-from ..domain import ScheduledOperation
 from .state import (
     StaticData,
     DynamicState,
@@ -28,7 +26,7 @@ from .rules import (
 )
 
 
-class JobShopDecoder:
+class ChromosomeDecoder:
     """
     Decoder for the Job Shop Scheduling Problem.
     """
@@ -124,56 +122,3 @@ class JobShopDecoder:
 
         makespan = int(dynamic.completion.max()) if dynamic.completion.size else 0
         return makespan, int(penalty), dynamic.setup_start, dynamic.completion, semi
-
-
-def build_schedule_times_df_from_ops(
-    self, ops: list[ScheduledOperation]
-) -> pd.DataFrame:
-    """
-    Build a schedule DataFrame from domain operations.
-
-    Args:
-        - ops: list of ScheduledOperation
-
-    Returns:
-        - schedule_df: DataFrame with columns
-          [job, lot, machine, setup_start_time, start_time, completion_time, lot_size].
-    """
-    cols = [
-        "job",
-        "lot",
-        "machine",
-        "setup_start_time",
-        "start_time",
-        "completion_time",
-        "lot_size",
-    ]
-
-    rows = [
-        {
-            "job": op.id.job,
-            "lot": op.id.lot,
-            "machine": op.id.machine,
-            "setup_start_time": op.time.setup_start,
-            "start_time": op.time.start,
-            "completion_time": op.time.completion,
-            "lot_size": op.lot_size,
-        }
-        for op in ops
-        if op.time.completion > 0
-    ]
-
-    df = pd.DataFrame(rows, columns=cols)
-
-    df = df.sort_values(["machine", "job", "lot"]).reset_index(drop=True)
-    return df.astype(
-        {
-            "job": "int64",
-            "lot": "int64",
-            "machine": "int64",
-            "setup_start_time": "int64",
-            "start_time": "int64",
-            "completion_time": "int64",
-            "lot_size": "int64",
-        }
-    )

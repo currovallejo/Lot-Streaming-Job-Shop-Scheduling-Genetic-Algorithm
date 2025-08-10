@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
 # --------- src/ MODULES ---------
-from ..import params
+from .. import jobshop
 
 # --------- DECODER ---------
 
@@ -61,13 +61,13 @@ class SolutionDecoder(ABC):
         pass
 
 
-class JobShopDecoder(SolutionDecoder):
+class ChromosomeDecoder(SolutionDecoder):
     """
     Decoder for Job Shop Scheduling Problem solutions.
     This class decodes a chromosome into a schedule and calculates the makespan.
     """
 
-    def __init__(self, problem_params: params.JobShopRandomParams):
+    def __init__(self, problem_params: jobshop.JobShopRandomParams):
         """
         Initialize JobShop decoder with problem parameters
 
@@ -195,7 +195,6 @@ class JobShopDecoder(SolutionDecoder):
             return completion_time[current_machine, predecessor[0], predecessor[1]]
 
         def _lot_start_time():
-
             if _is_first_machine() and _is_empty_machine():
                 start_time[current_machine, current_job, current_lot] = 0
 
@@ -270,7 +269,6 @@ class JobShopDecoder(SolutionDecoder):
             return _lot_processing_time() > shift_time
 
         def _fit_within_predecessor_shift() -> bool:
-
             if is_setup_dependent:
                 return (
                     _completion_time_in_current_machine() % shift_time

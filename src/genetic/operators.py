@@ -14,11 +14,11 @@ import numpy as np
 import random
 import copy
 from deap import tools
-from typing import Tuple
+from typing import Tuple, List
 
 # --------- src/ MODULES ---------
-from . import params
-from .shared.types import Chromosome, RHS
+from .. import jobshop
+from ..shared.types import Chromosome, RHS
 
 # --------- GENETIC OPERATORS ---------
 
@@ -102,7 +102,9 @@ class LotStreamingOperators:
 
     # ---- CONVERSION METHODS FOR RHS (Job Sequences) ---------
 
-    def build_master_ops_dict(self, problem_params: params.JobShopRandomParams) -> None:
+    def build_master_ops_dict(
+        self, problem_params: jobshop.JobShopRandomParams
+    ) -> None:
         """
         Populate the master_ops attribute  with a mapping from
         operation-index → (job, lot), based on problem parameters.
@@ -220,7 +222,7 @@ class LotStreamingOperators:
         ind2: Chromosome,
         crossover_func,
         target_idx: int,
-    ) -> tuple[Chromosome, Chromosome]:
+    ) -> Tuple[Chromosome, Chromosome]:
         """Generic crossover method for chromosomes
         Args:
             ind1 (tuple): First individual (chromosome).
@@ -234,9 +236,6 @@ class LotStreamingOperators:
         new_ind1[target_idx], new_ind2[target_idx] = crossover_func(
             ind1[target_idx], ind2[target_idx]
         )
-        if type(new_ind1[target_idx]) is tuple:
-            new_ind1[target_idx] = new_ind1[target_idx][0]
-            new_ind2[target_idx] = new_ind2[target_idx][0]
         return new_ind1, new_ind2
 
     def _mutation_template(
@@ -244,7 +243,7 @@ class LotStreamingOperators:
         ind: Chromosome,
         mutation_func,
         target_idx: int,
-    ) -> tuple[Chromosome,]:
+    ) -> list:
         """Generic mutation method for chromosomes
         Args:
             ind (tuple): Individual (chromosome).
@@ -325,7 +324,9 @@ class LotStreamingOperators:
             1,
         )
 
-    def _cx_job_level(self, rhs1: RHS, rhs2: RHS) -> Tuple[RHS, RHS]:
+    def _cx_job_level(
+        self, rhs1: RHS, rhs2: RHS
+    ) -> tuple[list[tuple[int, int] | None], list[tuple[int, int] | None]]:
         """Job Level crossover core logic for right-hand side of chromosomes.
         As it is specific for this problem solution design,
         it is treated specifically"""
@@ -362,11 +363,11 @@ class LotStreamingOperators:
         return new_rhs1, new_rhs2
 
     # --------- MUTATION METHODS ---------
-    def sstm_lhs(self, ind: tuple) -> Tuple[Chromosome,]:
+    def sstm_lhs(self, ind: list) -> List[Chromosome,]:
         """SSTM mutation for left-hand side of chromosomes."""
         return self._mutation_template(ind, self.flat_mutation_operators.sstm, 0)
 
-    def shuffle_rhs(self, ind: tuple) -> Tuple[Chromosome,]:
+    def shuffle_rhs(self, ind: list) -> List[Chromosome,]:
         """Shuffle mutation for right-hand side of chromosomes."""
         return self._mutation_template(
             ind,

@@ -9,7 +9,7 @@ from typing import Optional, Sequence
 import matplotlib.pyplot as plt
 
 # --- External project types (typing only) ---
-from ..params import JobShopRandomParams
+from ..jobshop import JobShopRandomParams
 from ..domain import ScheduledOperation
 
 # --- Internal layers ---

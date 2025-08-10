@@ -4,11 +4,12 @@ State containers and simple builders (routes, precedences, time arrays).
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple, Iterable
 import numpy as np
 
 
 # --- DTOs --------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class StaticData:
@@ -24,9 +25,10 @@ class StaticData:
         - is_setup_dependent: flag
         - is_shift_constraints: flag
     """
-    sequence: Sequence[Sequence[int]]
-    p_times: np.ndarray
-    s_times: np.ndarray
+
+    sequence: dict
+    p_times: dict
+    s_times: dict
     n_lots: int
     shift_time: int
     is_setup_dependent: bool
@@ -45,6 +47,7 @@ class DynamicState:
         - precedences: {machine: [(job, lot), ...]}
         - lot_sizes: flattened vector by (job, lot)
     """
+
     setup_start: np.ndarray
     completion: np.ndarray
     routes: Dict[Tuple[int, int], List[int]]
@@ -62,6 +65,7 @@ class Cursor:
         - lot: current lot id
         - machine: current machine id
     """
+
     job: int
     lot: int
     machine: int
@@ -69,16 +73,17 @@ class Cursor:
 
 # --- Builders ----------------------------------------------------------------
 
+
 def build_routes(
-    sequence: Sequence[Sequence[int]],
-    jobs: Sequence[int],
-    lots: Sequence[int],
+    sequence: dict,
+    jobs: Iterable,
+    lots: Iterable,
 ) -> Dict[Tuple[int, int], List[int]]:
     return {(j, u): list(sequence[j]) for j in jobs for u in lots}
 
 
 def build_precedences(
-    machines: Sequence[int],
+    machines: Iterable,
     is_setup_dependent: bool,
 ) -> Dict[int, List[Tuple[int, int]]]:
     preds: Dict[int, List[Tuple[int, int]]] = {}
@@ -87,7 +92,9 @@ def build_precedences(
     return preds
 
 
-def build_time_arrays(n_machines: int, n_jobs: int, n_lots: int) -> tuple[np.ndarray, np.ndarray]:
+def build_time_arrays(
+    n_machines: int, n_jobs: int, n_lots: int
+) -> tuple[np.ndarray, np.ndarray]:
     return (
         np.full((n_machines, n_jobs, n_lots), 0, dtype=int),
         np.full((n_machines, n_jobs, n_lots), 0, dtype=int),

@@ -1,7 +1,0 @@
-plotly==5.9.0
-numpy==1.26.4
-deap==1.4.0
-matplotlib==3.8.0
-pandas==2.1.4
-PyYAML~=6.0
-pytest~=8.4.0

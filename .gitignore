@@ -1,8 +1,10 @@
 __pycache__
 .pytest_cache
+.ruff_cache
+.mypy_cache
 .vscode
 .venv
 semi_legacy
 tests_legacy
 results
-
+poetry.lock

@@ -14,29 +14,28 @@ Script: genetic_algorithm.py - Genetic Algorithm
 from deap import base, creator, tools
 import time
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Callable
 
 # --------- src/ MODULES ---------
-from .chromosome_generator import ChromosomeGenerator
-from .scheduling import Scheduler
-from .params import JobShopRandomParams
-from .genetic_operators import LotStreamingOperators
-from .shared.types import Chromosome
-from .shared.utils import load_config, timed
+from .chromosome import ChromosomeGenerator
+from ..scheduling import Scheduler
+from ..jobshop import JobShopRandomParams
+from .operators import LotStreamingOperators
+from ..shared.types import Chromosome
+from ..shared.utils import load_config, timed
 
 # --------- GENETIC ALGORITHM ---------
 
 
 class GeneticAlgorithm:
-
     def __init__(self, problem_params: JobShopRandomParams, logger, config_path: str):
         self.problem_params = problem_params
         self.logger = logger
         self.config = load_config(config_path)
         self.population_size = self.config["population_size"]
         self.num_generations = self.config["num_generations"]
-        self.cx_probs: dict = self.config["crossover"]
-        self.mut_probs: dict = self.config["mutation"]
+        self.cx_probs: dict[str, float] = self.config["crossover"]
+        self.mut_probs: dict[str, float] = self.config["mutation"]
         self.tournament_size = self.config["selection"]["tournament_size"]
         self.diversification = self.config["diversification"]["enabled"]
         self.diversification_threshold = self.config["diversification"]["threshold"]
@@ -128,7 +127,7 @@ class GeneticAlgorithm:
         self.scheduler = Scheduler(self.problem_params)
         return (self.scheduler.get_fitness(encoded_solution=individual),)
 
-    def _create_individual_factory(self) -> callable:
+    def _create_individual_factory(self) -> Callable:
         """
         Factory function to create an individual.
         Returns:
@@ -165,13 +164,13 @@ class GeneticAlgorithm:
         """
         for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
             for name, func in self._cx_funcs.items():
-                p = self.cx_probs.get(name)
+                p = self.cx_probs.get(name) or 0.0
                 if p > 0 and np.random.rand() < p:
                     child1, child2 = func(ind1, ind2)
                     ind1[:], ind2[:] = child1, child2
                     # invalidate fitness so it’ll be re-evaluated
                     del ind1.fitness.values
-                    del ind1.fitness.values
+                    del ind2.fitness.values
 
     def _apply_mutation(self, offspring: list[Chromosome]):
         """

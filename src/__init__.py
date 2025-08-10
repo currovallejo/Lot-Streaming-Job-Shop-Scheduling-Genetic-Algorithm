@@ -1,4 +1,4 @@
-from .params import JobShopRandomParams
-from .chromosome_generator import ChromosomeGenerator
+from .jobshop import JobShopRandomParams
+from .genetic.chromosome import ChromosomeGenerator
 
 __all__ = [JobShopRandomParams, ChromosomeGenerator]

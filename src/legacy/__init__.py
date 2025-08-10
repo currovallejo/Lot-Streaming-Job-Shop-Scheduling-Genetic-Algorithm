@@ -1,3 +1,3 @@
-from .decoder import JobShopDecoder
+from .decoder import ChromosomeDecoder
 
-__all__ = ["JobShopDecoder"]
+__all__ = ["ChromosomeDecoder"]

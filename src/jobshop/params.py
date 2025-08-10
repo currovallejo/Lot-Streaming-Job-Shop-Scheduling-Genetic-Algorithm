@@ -20,7 +20,6 @@ def custom_serializer(obj):
 
 
 class JobSequence(list):
-
     def prev(self, x):
         if self.is_first(x):
             return None
@@ -55,7 +54,6 @@ class JobSequence(list):
 
 
 class JobShopParams:
-
     def __init__(
         self,
         machines: Iterable,
@@ -93,7 +91,6 @@ class JobShopParams:
 
 
 class JobShopRandomParams(JobShopParams):
-
     def __init__(self, config_path: str = "config/jobshop_config.yaml"):
         """Class for generating job-shop parameters from YAML config
 
