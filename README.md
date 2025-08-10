@@ -1,3 +1,7 @@
+![Tests](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/tests.yaml/badge.svg?branch=ci/gh-actions)
+![Ruff](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/ruff.yaml/badge.svg?branch=ci/gh-actions)
+
+
 **DEPRECATED**. After refactor the whole codebase, need update.
 
 **Important!!** --> needed Python 3.11.4 to run!
