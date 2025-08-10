@@ -1,12 +1,13 @@
-import src.jobshop as jobshop
-from src.genetic.algorithm import GeneticAlgorithm
-from src.shared.utils import init_logger
-from src.plotting import Plotter
+# from jobshop as jobshop
+from jobshop import JobShopRandomParams
+from genetic.algorithm import GeneticAlgorithm
+from shared.utils import init_logger
+from plotting import Plotter
 
 
 # --------- MAIN DEMO ---------
 logger = init_logger()
-problem_params = jobshop.JobShopRandomParams(
+problem_params = JobShopRandomParams(
     config_path="config/jobshop/js_params_01.yaml"
 )
 problem_params.print_jobshop_params(save_to_excel=False)

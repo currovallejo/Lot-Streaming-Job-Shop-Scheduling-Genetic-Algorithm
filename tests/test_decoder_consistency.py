@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from src.legacy import ChromosomeDecoder
-from src.scheduling import Scheduler
+from legacy import ChromosomeDecoder
+from scheduling import Scheduler
 
 
 def test_decoder_v1_vs_v2_consistency(problem_params, chromosome):

@@ -14,8 +14,8 @@ import numpy as np
 
 
 # --------- src/ MODULES ---------
-from .. import jobshop
-from ..shared.types import Chromosome
+from jobshop import JobShopRandomParams
+from shared.types import Chromosome
 
 
 # --------- CHROMOSOME GENERATOR ---------
@@ -24,7 +24,7 @@ class LHSGenerator:
     representing the size of each lot.
     """
 
-    def __init__(self, params: jobshop.JobShopRandomParams):
+    def __init__(self, params: JobShopRandomParams):
         self.params = params
 
     def generate(self) -> np.ndarray:
@@ -42,7 +42,7 @@ class RHSGenerator:
     representing (job, lot) pairs for each machine operation.
     """
 
-    def __init__(self, params: jobshop.JobShopRandomParams):
+    def __init__(self, params: JobShopRandomParams):
         self.params = params
 
     def generate(self) -> list[tuple[int, int]]:
@@ -62,7 +62,7 @@ class ChromosomeGenerator:
     Problem.
     """
 
-    def __init__(self, params: jobshop.JobShopRandomParams):
+    def __init__(self, params: JobShopRandomParams):
         self.params = params
         self.lhs_generator = LHSGenerator(params)
         self.rhs_generator = RHSGenerator(params)

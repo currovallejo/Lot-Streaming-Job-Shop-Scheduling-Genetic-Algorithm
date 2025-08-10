@@ -7,7 +7,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Any
 
-from .. import jobshop as params_mod
+from jobshop import JobShopRandomParams
 from .lot_sizing import distribute_demand
 from .state import (
     StaticData,
@@ -31,7 +31,7 @@ class ChromosomeDecoder:
     Decoder for the Job Shop Scheduling Problem.
     """
 
-    def __init__(self, problem_params: params_mod.JobShopRandomParams):
+    def __init__(self, problem_params: JobShopRandomParams):
         self.problem_params = problem_params
 
     def decode(self, encoded_solution: Any) -> Any:

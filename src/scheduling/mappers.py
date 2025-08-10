@@ -5,9 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
 import numpy as np
+import pandas as pd
 
-from ..domain.scheduling import OperationId, TimeWindow, ScheduledOperation
-from src.jobshop import JobShopRandomParams
+from domain.scheduling import OperationId, TimeWindow, ScheduledOperation
+from jobshop import JobShopRandomParams
 
 
 @dataclass
@@ -67,9 +68,8 @@ class OperationAssembler:
                 )
         return ops
 
-def build_schedule_times_df_from_ops(
-    self, ops: list[ScheduledOperation]
-) -> pd.DataFrame:
+
+def build_schedule_times_df_from_ops(ops: list[ScheduledOperation]) -> pd.DataFrame:
     """
     Build a schedule DataFrame from domain operations.
 

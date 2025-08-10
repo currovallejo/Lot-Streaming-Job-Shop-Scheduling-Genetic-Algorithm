@@ -17,8 +17,8 @@ from deap import tools
 from typing import Tuple, List
 
 # --------- src/ MODULES ---------
-from .. import jobshop
-from ..shared.types import Chromosome, RHS
+from jobshop import JobShopRandomParams
+from shared.types import Chromosome, RHS
 
 # --------- GENETIC OPERATORS ---------
 
@@ -103,7 +103,7 @@ class LotStreamingOperators:
     # ---- CONVERSION METHODS FOR RHS (Job Sequences) ---------
 
     def build_master_ops_dict(
-        self, problem_params: jobshop.JobShopRandomParams
+        self, problem_params: JobShopRandomParams
     ) -> None:
         """
         Populate the master_ops attribute  with a mapping from

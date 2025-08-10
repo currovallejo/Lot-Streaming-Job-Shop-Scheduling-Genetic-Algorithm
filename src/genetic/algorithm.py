@@ -18,11 +18,11 @@ from typing import Tuple, Callable
 
 # --------- src/ MODULES ---------
 from .chromosome import ChromosomeGenerator
-from ..scheduling import Scheduler
-from ..jobshop import JobShopRandomParams
+from scheduling import Scheduler
+from jobshop import JobShopRandomParams
 from .operators import LotStreamingOperators
-from ..shared.types import Chromosome
-from ..shared.utils import load_config, timed
+from shared.types import Chromosome
+from shared.utils import load_config, timed
 
 # --------- GENETIC ALGORITHM ---------
 

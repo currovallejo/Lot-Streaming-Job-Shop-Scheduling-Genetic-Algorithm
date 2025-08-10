@@ -2,9 +2,9 @@ from __future__ import annotations
 import pandas as pd
 from .decoder import ChromosomeDecoder
 from .mappers import OperationAssembler, build_schedule_times_df_from_ops
-from ..domain import ScheduledOperation
-from ..jobshop import JobShopRandomParams
-from ..shared.types import Chromosome
+from domain import ScheduledOperation
+from jobshop import JobShopRandomParams
+from shared.types import Chromosome
 
 
 class Scheduler:

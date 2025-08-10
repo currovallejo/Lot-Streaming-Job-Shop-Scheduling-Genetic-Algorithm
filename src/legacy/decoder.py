@@ -15,8 +15,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
-# --------- src/ MODULES ---------
-from .. import jobshop
+from jobshop import JobShopRandomParams
 
 # --------- DECODER ---------
 
@@ -67,7 +66,7 @@ class ChromosomeDecoder(SolutionDecoder):
     This class decodes a chromosome into a schedule and calculates the makespan.
     """
 
-    def __init__(self, problem_params: jobshop.JobShopRandomParams):
+    def __init__(self, problem_params: JobShopRandomParams):
         """
         Initialize JobShop decoder with problem parameters
 

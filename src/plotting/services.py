@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from ..domain import ScheduledOperation
+from domain import ScheduledOperation
 
 
 # --- Private label helpers (presentation-only) ---

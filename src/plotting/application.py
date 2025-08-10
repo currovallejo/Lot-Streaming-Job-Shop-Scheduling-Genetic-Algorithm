@@ -9,8 +9,8 @@ from typing import Optional, Sequence
 import matplotlib.pyplot as plt
 
 # --- External project types (typing only) ---
-from ..jobshop import JobShopRandomParams
-from ..domain import ScheduledOperation
+from jobshop import JobShopRandomParams
+from domain import ScheduledOperation
 
 # --- Internal layers ---
 from .services import build_gantt_figure, build_evolution_figure

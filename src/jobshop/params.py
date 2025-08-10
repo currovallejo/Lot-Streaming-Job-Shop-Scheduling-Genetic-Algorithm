@@ -10,7 +10,7 @@ import numpy as np
 from typing import Iterable
 import pandas as pd
 
-from src.shared import utils
+from shared import utils
 
 
 def custom_serializer(obj):
