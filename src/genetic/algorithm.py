@@ -97,7 +97,7 @@ class GeneticAlgorithm:
 
             # Append the best fitness of this generation to the history
             best_fitness_history.append(best_population_fitness)
-            
+
             # Increase mutation rates if no improvement
             self._update_mutation_rates(best_fitness, best_population_fitness)
 
