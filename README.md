@@ -69,6 +69,32 @@ poetry run python main.py     # Run main script
 poetry run pytest -q          # Run tests
 ```
 
+## Using Jupyter Notebooks with Poetry 📓
+
+You can explore or demonstrate the project interactively using Jupyter Notebooks, fully integrated with your Poetry-managed environment.
+
+1. **Install Jupyter (dev dependency)**
+
+   ```bash
+   poetry add --group dev notebook ipykernel
+   ```
+
+2. **Register the Poetry environment as a Jupyter kernel**
+
+   ```bash
+  poetry run python -m ipykernel install --user --name "lsjssp-poetry" --display-name "Python (LSJSSP Poetry)"
+   ```
+
+3. **Launch Jupyter**
+
+   ```bash
+   poetry run jupyter notebook
+   ```
+
+4. **Select the correct kernel**
+   In the notebook interface, go to **Kernel → Change Kernel → Python (LSJSSP Poetry)**.
+   This ensures your notebooks use the exact same dependencies as the rest of the project.
+
 ## 📂 Repository structure
 ```
 config/                # YAML configuration files

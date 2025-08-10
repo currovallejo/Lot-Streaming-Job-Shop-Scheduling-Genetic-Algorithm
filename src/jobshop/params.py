@@ -199,7 +199,7 @@ class JobShopRandomParams(JobShopParams):
 
         return sd_setup_times
 
-    def print_jobshop_params(self, save_to_excel=False):
+    def print_jobshop_params(self):
         """Prints the parameters of the job-shop problem"""
         print("Job-Shop Parameters:")
         self._print_params_machines()

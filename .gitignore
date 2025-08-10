@@ -4,6 +4,7 @@ __pycache__
 .mypy_cache
 .vscode
 .venv
+.ipynb_checkpoints
 semi_legacy
 tests_legacy
 results
