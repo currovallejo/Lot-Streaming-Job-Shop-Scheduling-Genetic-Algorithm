@@ -2,7 +2,7 @@
 job_shop:
   n_machines: 3
   n_jobs: 3
-  n_lots: 3
+  n_lots: 4
   
 processing_times:
   t_span: [1, 20]
@@ -15,7 +15,7 @@ random:
   seed: 4  # Set to integer for reproducible results
   
 fixed_params:
-  demand_per_job: 150
+  demand_per_job: 50
 
 shift:
   shift_constraint: False  # True to apply shift constraints
