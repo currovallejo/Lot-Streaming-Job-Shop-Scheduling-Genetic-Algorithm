@@ -42,3 +42,6 @@ ipykernel = "^6.30.1"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--ignore=tests_legacy"]
+
+[tool.mypy]
+ignore_missing_imports = true
