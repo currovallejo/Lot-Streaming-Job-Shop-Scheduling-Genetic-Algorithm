@@ -1,58 +1,105 @@
+
+
+# Lot Streaming Job Shop Scheduling Genetic Algorithm
+
 ![Tests](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/test.yaml/badge.svg)
 ![Ruff](https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm/actions/workflows/ruff.yaml/badge.svg)
 
-
-
-**DEPRECATED**. After refactor the whole codebase, need update.
-
-**Important!!** --> needed Python 3.11.4 to run!
-
-# GENETIC ALGORITHM for LOT STREAMING in JOB SHOP SCHEDULING 
-Set of modules for solving the lot streaming job shop scheduling problem through a genetic algorithm.
-
-## Features
-- lot streaming (setting max number of lots for each job)
-- Possibility of handling shift constraints
-- Possibility of handling sequence dependent setup times
-- Python code PEP8 compliant
+This repository implements a genetic algorithm to solve the **Lot Streaming Job Shop Scheduling Problem (LSJSP)**, , with support for **sequence-dependent setup times** and **shift constraints**. It includes modules for generating random problem instances, decoding chromosomes into semi-active schedules, and visualizing results.
 
 | ![newplot](https://github.com/user-attachments/assets/8f404e91-f633-455d-ae4d-4373c8421596) | 
 |:--:| 
 | *LSJSP Scheduling with shift constraints and sequence dependent setup times* |
 
-## Architecture
-- params.py | generation of random job shop parameters
-- chromosome_generator.py | generation of random chromosomes for GA population
-- decoder.py | decodification and evaluation of each chromosome (solution) through active scheduling algorithm (no unnecessary idle times)
-- genetic_operators.py | cross-over and mutation operators
-- genetic_algorithm.py | genetic algorithm and main script
-- plot.py | plotting of Gantt chart with plotly express timeline
-- *name_OOP.py files decrease GA performance, therefore are not taken into account*
+## 🚀 Key features
 
-| ![image](https://github.com/user-attachments/assets/f9e0ca7b-86eb-45be-9b40-b7a13ec43e48) |
-|:--:| 
-| *Architecture of the Program. main.py not implemented, used instead main() in genetic_algorithm.py* |
+- 🎲 Random generation of Job Shop parameters from YAML config files
+- 🧬 Genetic algorithm built with **DEAP** including multiple crossover and mutation operators
+- 🗺️ Decoder that supports sequence-dependent or independent setup times and optional shift constraints
+- 📦 Lot streaming with consistent sizes. Lot sizes are equal for all operations along the routing process of a job, but the size of each lot is variable and determined by the algorithm
+- 📊 Plotting utilities for Gantt charts and fitness evolution stored under `results/`
 
-## JOB SHOP PAREMETERS
-**Inputs**
-- number of machines
-- number of jobs
-- max number of lots for each job (same for all jobs)
-- seed (partial control of random generation)
 
-**Outputs**
-- processing times
+## 📋 Requirements
+- Python **3.11.4**
+- [Poetry](https://python-poetry.org/) for dependency management
+  - **⚠️ IMPORTANT:** Poetry is strictly required for this project. The application uses Poetry's package structure for imports and won't function with standard pip installations or other package managers. All scripts depend on Poetry's environment configuration.
 
-- setup times
-- sequences
-  
-*Demand is set to 50 units for each job and can be changed after generating the parameters object*
+## ⚡ Quick Start
 
-# TRY IT YOURSELF!
-Take a look at the GA_guide.ipynb jupyter notebook. There you will find the whole program explained step by step.
+1. **Clone the repository**
 
-## References
-Fantahun M. Defersha & Mingyuan Chen (2012) Jobshop lot streaming with routing flexibility, sequence-dependent setups, machine release dates and lag time, International Journal of Production Research, 50:8, 2331-2352
+```bash
+git clone https://github.com/currovallejo/Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm.git
+cd Lot-Streaming-Job-Shop-Scheduling-Genetic-Algorithm
+```
 
-Params.py is a file originally created by Bruno Scalia Carneiro Ferreira Leite for his [jobshop package](https://github.com/bruscalia/jobshop)
+2. **Install Poetry** (Windows PowerShell command)
+
+```bash
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+```
+
+*(For macOS/Linux, see [Poetry installation docs](https://python-poetry.org/docs/#installation))*
+
+3. **Configure Poetry to store the virtual environment inside the project**
+
+```bash
+poetry config virtualenvs.in-project true
+```
+
+4. **Add Poetry to your system PATH**
+   Make sure the Poetry `bin` directory is in your `PATH` so the `poetry` command is recognized.
+   Verify with:
+
+```bash
+poetry --version
+```
+
+5. **Install all dependencies (including development tools)**
+
+```bash
+poetry install --with dev
+```
+
+6. **Run the application or tests**
+
+```bash
+poetry run python main.py     # Run main script
+poetry run pytest -q          # Run tests
+```
+
+## 📂 Repository structure
+```
+config/                # YAML configuration files
+src/
+  genetic/             # Genetic algorithm components
+  jobshop/             # Job shop parameter generation
+  scheduling/          # Chromosome decoding and scheduling logic
+  plotting/            # Gantt and fitness evolution plotting
+main.py                # Example script tying everything together
+tests/                 # Pytest-based test suite
+```
+
+## Usage
+1. Adjust `config/jobshop/js_params_01.yaml` and `config/genetic_algorithm/ga_config_01.yaml` as needed.
+2. Run the demonstration script:
+   ```bash
+   python main.py
+   ```
+   The script prints the best makespan found and, if enabled, penalty values. An interactive Gantt chart (Plotly HTML) and fitness evolution plot are saved to `results/schedule/` and `results/fitness_evolution/` respectively.
+
+## 🧩 How it works (high-level)
+
+- **Chromosome structure** – Encodes two components:
+
+  * **LHS (Left-Hand Side)**: Continuous values representing lot sizes.
+  * **RHS (Right-Hand Side)**: Discrete sequence of operations for all jobs.
+- **Scheduler / Decoder** – Transforms a chromosome into a feasible *semi-active* schedule that respects job precedence, sequence-dependent setup times, and optional shift constraints.
+- **Genetic operators** – Specialized crossover and mutation methods that modify LHS and/or RHS while maintaining feasibility.
+- **Fitness evaluation** – Primarily minimizes makespan, with optional penalty terms for violations related to shift constraints.
+
+## 📚 References
+Fantahun M. Defersha & Mingyuan Chen (2012) *Jobshop lot streaming with routing flexibility, sequence-dependent setups, machine release dates and lag time*, International Journal of Production Research, 50:8, 2331-2352.
+
 
