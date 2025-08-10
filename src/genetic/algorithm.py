@@ -75,30 +75,36 @@ class GeneticAlgorithm:
 
         for gen in range(self.num_generations):
             start = time.time()
+
             # Select the next generation individuals
-            offspring = list(
-                map(toolbox.clone, toolbox.select(population, len(population)))
-            )
+            offspring = toolbox.select(population, len(population))
+            offspring = list(map(toolbox.clone, offspring))
+
             # Apply crossover and mutation on the offspring
             self._apply_crossover(offspring)
             self._apply_mutation(offspring)
+
             # Evaluate the individuals that have evolved
             for ind in offspring:
                 if not ind.fitness.valid:
                     ind.fitness.values = toolbox.evaluate(ind)
+
             # Replace the population by the offspring
             population[:] = offspring
+
             # Track the best fitness of the current population
             best_population_fitness = min(ind.fitness.values[0] for ind in population)
 
+            # Append the best fitness of this generation to the history
+            best_fitness_history.append(best_population_fitness)
+            
             # Increase mutation rates if no improvement
             self._update_mutation_rates(best_fitness, best_population_fitness)
 
-            # Log the best fitness obtained until now
+            # Update the best fitness and individual if found a better one
             if best_population_fitness < best_fitness:
                 best_fitness = best_population_fitness
                 best_individual = tools.selBest(population, 1)[0]
-            best_fitness_history.append(best_fitness)
 
             # Diversify population if needed
             if (

@@ -13,46 +13,6 @@ import pandas as pd
 from shared import utils
 
 
-def custom_serializer(obj):
-    if isinstance(obj, tuple):
-        return str(obj)
-    return obj
-
-
-class JobSequence(list):
-    def prev(self, x):
-        if self.is_first(x):
-            return None
-        else:
-            i = self.index(x)
-            return self[i - 1]
-
-    def next(self, x):
-        if self.is_last(x):
-            return None
-        else:
-            i = self.index(x)
-            return self[i + 1]
-
-    def is_first(self, x):
-        return x == self[0]
-
-    def is_last(self, x):
-        return x == self[-1]
-
-    def swap(self, x, y):
-        i = self.index(x)
-        j = self.index(y)
-        self[i] = y
-        self[j] = x
-
-    def append(self, __object) -> None:
-        if __object not in self:
-            super().append(__object)
-        else:
-            pass
-
-
 class JobShopParams:
     def __init__(
         self,
@@ -151,7 +111,7 @@ class JobShopRandomParams(JobShopParams):
         sequence = np.random.choice(machines, size=sequence_length, replace=False)
         sequence = sequence.astype(int)
 
-        return JobSequence(sequence)
+        return list(sequence)
 
     def _random_setup(self, machines, jobs, t_span_setup):
         """Generates random setup times for each job on each machine."""
