@@ -77,4 +77,4 @@ class ChromosomeGenerator:
         lhs = self.lhs_generator.generate()
         rhs = self.rhs_generator.generate()
 
-        return [lhs, rhs]
+        return (lhs, rhs)

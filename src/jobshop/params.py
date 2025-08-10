@@ -7,7 +7,7 @@ parameters in the script where the model is defined.
 """
 
 import numpy as np
-from typing import Iterable
+from typing import Sequence
 import pandas as pd
 
 from shared import utils
@@ -56,12 +56,12 @@ class JobSequence(list):
 class JobShopParams:
     def __init__(
         self,
-        machines: Iterable,
-        jobs: Iterable,
+        machines: Sequence,
+        jobs: Sequence,
         p_times: dict,
         seq: dict,
         setup: dict,
-        lots: Iterable,
+        lots: Sequence,
     ):
         """White label class for job-shop parameters
 
@@ -116,10 +116,10 @@ class JobShopRandomParams(JobShopParams):
         self.shift_constraints = config["shift"]["shift_constraint"]
 
         # Generate random job-shop data
-        machines = np.arange(n_machines, dtype=int)
-        jobs = np.arange(n_jobs)
+        machines = range(n_machines)
+        jobs = range(n_jobs)
         p_times = self._random_times(machines, jobs, self.t_span)
-        lots = np.arange(n_lots, dtype=int)
+        lots = range(n_lots)
         seq = self._random_sequences(machines, jobs)
         setup = self._random_setup(machines, jobs, self.t_span_setup)
 

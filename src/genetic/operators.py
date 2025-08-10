@@ -216,11 +216,11 @@ class LotStreamingOperators:
 
     def _crossover_template(
         self,
-        ind1: Chromosome,
-        ind2: Chromosome,
+        ind1: list,
+        ind2: list,
         crossover_func,
         target_idx: int,
-    ) -> Tuple[Chromosome, Chromosome]:
+    ) -> Tuple[list, list]:
         """Generic crossover method for chromosomes
         Args:
             ind1 (tuple): First individual (chromosome).
@@ -238,7 +238,7 @@ class LotStreamingOperators:
 
     def _mutation_template(
         self,
-        ind: Chromosome,
+        ind: list,
         mutation_func,
         target_idx: int,
     ) -> list:
@@ -257,17 +257,13 @@ class LotStreamingOperators:
         return new_ind
 
     # --------- LHS CROSSOVER METHODS (Lot Sizes) ---------
-    def spc1_lhs(
-        self, ind1: Chromosome, ind2: Chromosome
-    ) -> Tuple[Chromosome, Chromosome]:
+    def spc1_lhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
         """Perform SPC-1 crossover on the left-hand side of two chromosomes."""
         return self._crossover_template(
             ind1, ind2, self.flat_crossover_operators.spc1, 0
         )
 
-    def spc2_lhs(
-        self, ind1: Chromosome, ind2: Chromosome
-    ) -> Tuple[Chromosome, Chromosome]:
+    def spc2_lhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
         """Perform SPC-2 crossover on the left-hand side of two chromosomes."""
         return self._crossover_template(
             ind1, ind2, self.flat_crossover_operators.spc2, 0
@@ -275,9 +271,7 @@ class LotStreamingOperators:
 
     # --------- RHS CROSSOVER METHODS (Job Sequences) ---------
 
-    def pmx_rhs(
-        self, ind1: Chromosome, ind2: Chromosome
-    ) -> Tuple[Chromosome, Chromosome]:
+    def pmx_rhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
         """
         PMX (Partially Matched Crossover) crossover for right-hand side of chromosomes.
             For more information, see DEAP package documentation
@@ -291,9 +285,7 @@ class LotStreamingOperators:
             target_idx=1,
         )
 
-    def ox_rhs(
-        self, ind1: Chromosome, ind2: Chromosome
-    ) -> Tuple[Chromosome, Chromosome]:
+    def ox_rhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
         """
         OX crossover for right-hand side of chromosomes.
             For more information, see DEAP package documentation
@@ -305,9 +297,7 @@ class LotStreamingOperators:
             target_idx=1,
         )
 
-    def cx_job_level_rhs(
-        self, ind1: Chromosome, ind2: Chromosome
-    ) -> Tuple[Chromosome, Chromosome]:
+    def cx_job_level_rhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
         """
         Perform a job-level crossover for right-hand side of chromosomes.
 
