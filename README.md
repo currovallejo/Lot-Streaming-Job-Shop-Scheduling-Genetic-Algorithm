@@ -83,7 +83,7 @@ You can explore or demonstrate the project interactively using Jupyter Notebooks
 2. **Register the Poetry environment as a Jupyter kernel**
 
    ```bash
-  poetry run python -m ipykernel install --user --name "lsjssp-poetry" --display-name "Python (LSJSSP Poetry)"
+   poetry run python -m ipykernel install --user --name "lsjssp-poetry" --display-name "Python (LSJSSP Poetry)"
    ```
 
 3. **Launch Jupyter**

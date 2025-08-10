@@ -15,7 +15,7 @@ random:
   seed: 4  # Set to integer for reproducible results
   
 fixed_params:
-  demand_per_job: 50
+  demand_per_job: 100
 
 shift:
   shift_constraint: False  # True to apply shift constraints
