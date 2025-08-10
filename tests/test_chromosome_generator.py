@@ -4,7 +4,7 @@ def test_chromosome_generator(problem_params, chromosome):
     """
 
     # Check if the chromosome has the expected structure
-    assert isinstance(chromosome, list), "Chromosome should be a list"
+    assert isinstance(chromosome, tuple), "Chromosome should be a tuple"
 
     # Check if the lot sizes are non-negative integers
     lot_sizes = chromosome[0]
