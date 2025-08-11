@@ -14,7 +14,7 @@ Github: https://github.com/currovallejog
 from deap import base, creator, tools
 import time
 import numpy as np
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Optional
 from logging import Logger
 
 from .chromosome import ChromosomeGenerator
@@ -23,13 +23,19 @@ from jobshop import JobShopRandomParams
 from .operators import LotStreamingOperators
 from shared.types import Chromosome
 from shared.utils import load_config, timed
+from .metrics import MetricsSink
+from .results import GAResult
 
 # --------- GENETIC ALGORITHM ---------
 
 
 class GeneticAlgorithm:
     def __init__(
-        self, problem_params: JobShopRandomParams, logger: Logger, config_path: str
+        self,
+        problem_params: JobShopRandomParams,
+        logger: Logger,
+        config_path: str,
+        metrics_sink: MetricsSink,
     ):
         """
         Initialize the genetic algorithm with problem parameters, logger, and
@@ -63,15 +69,13 @@ class GeneticAlgorithm:
             "sstm": operators.sstm_lhs,
             "msi": operators.shuffle_rhs,
         }
+        self.metrics_sink = metrics_sink
 
     @timed
-    def run(self) -> Tuple[float, list, Chromosome]:
-        """
-        Run the genetic algorithm for the Lot Streaming Job Shop Scheduling Problem.
+    def run(self) -> GAResult:
+        """Run the genetic algorithm
         Returns:
-            best_fitness: Best makespan value found.
-            fitness_history: List of best fitness values per generation.
-            best_individual: Chromosome of the best solution found.
+            GAResult: The result of the genetic algorithm run, containing metrics and best solution.
         """
         # Initialize DEAP toolbox
         toolbox = self._setup_deap()
@@ -79,7 +83,7 @@ class GeneticAlgorithm:
         population = toolbox.population(n=self.population_size)
         # Initialize best fitness tracking for plotting
         best_fitness = float("inf")
-        best_fitness_history = []
+        best_individual = None
         self.no_improve_gen = 0  # Counter for generations without improvement
 
         for gen in range(self.num_generations):
@@ -107,12 +111,14 @@ class GeneticAlgorithm:
             # Increase mutation rates if no improvement
             self._update_mutation_rates(best_fitness, best_population_fitness)
 
-            # Update the best fitness and individual if found a better one
+            # Update best solution when found
             if best_population_fitness < best_fitness:
                 best_fitness = best_population_fitness
                 best_individual = tools.selBest(population, 1)[0]
-                # Append the best fitness of this generation to the history
-                best_fitness_history.append(best_fitness)
+                self.metrics_sink.set_best_solution(best_individual)
+
+            # Report metrics at the end of each generation
+            self.metrics_sink.on_generation_end(best_population_fitness, best_fitness)
 
             # Diversify population if needed
             if (
@@ -130,7 +136,11 @@ class GeneticAlgorithm:
                 f"Best fitness of this population: {best_population_fitness}"
             )
 
-        return best_fitness, best_fitness_history, best_individual
+        # Compute final makespan and penalty for the best solution
+        makespan, penalty = self._compute_final_metrics(best_individual)
+        self.metrics_sink.set_final_metrics(makespan, penalty)
+
+        return self.metrics_sink.finalize()
 
     def _eval_fitness(self, individual: Chromosome) -> Tuple[float]:
         """
@@ -245,3 +255,25 @@ class GeneticAlgorithm:
 
         self.mut_probs["sstm"] = new_rate
         self.mut_probs["msi"] = new_rate
+
+    def _compute_final_metrics(self, best_individual) -> Tuple[float, Optional[float]]:
+        """
+        Compute final makespan and penalty for the best individual.
+
+        Args:
+            best_individual: The best individual found during the GA run
+
+        Returns:
+            Tuple of (makespan, penalty) where penalty is None if shift_constraints is False
+        """
+        if best_individual is None:
+            return float("inf"), None
+
+        # Use existing scheduler instance to decode the solution
+        decoded_result = self.scheduler.decode(best_individual)
+        makespan = decoded_result[0]  # First element is makespan
+
+        # Only compute penalty if shift constraints are enabled
+        penalty = decoded_result[1] if self.problem_params.shift_constraints else None
+
+        return makespan, penalty

@@ -1,13 +1,11 @@
 # Genetic Algorithm Parameters Configuration
 population_size: 100
-num_generations: 50
+num_generations: 100
 
 # crossover probabilities
 crossover:
   spc1: 0.8
   spc2: 0.8
-  pmx: 0.8
-  ox: 0.8
   job_level: 0.8
 
 # mutation probabilities
@@ -29,4 +27,4 @@ mutation_growth:  1 # Growth factor for mutation probabilities, should increase 
 # can be used with all cases, but was designed for **independent setup + shift constraints**
 diversification:
   enabled: true # Enable this strategy
-  threshold: 20 # Number of generations without improvement before triggering diversification, duplicated after each step
+  threshold: 50 # Number of generations without improvement before triggering diversification, duplicated after each step

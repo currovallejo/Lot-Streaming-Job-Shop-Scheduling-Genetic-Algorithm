@@ -1,10 +1,8 @@
 """
-Plotting services for Lot Streaming Job Shop Scheduling Problem visualization.
+Gantt chart visualization for job shop scheduling solutions.
 
-This module provides core plotting functionality for generating Gantt charts and fitness
-evolution plots. It transforms domain objects into visual representations using Plotly
-for interactive Gantt charts and Matplotlib for fitness evolution graphs, supporting
-the visualization of genetic algorithm solutions and optimization progress.
+This module provides functions for generating and exporting Gantt charts from
+scheduled operations using Plotly for interactive visualization.
 
 Author: Francisco Vallejo
 LinkedIn: www.linkedin.com/in/franciscovallejogt
@@ -12,15 +10,16 @@ Github: https://github.com/currovallejog
 """
 
 from __future__ import annotations
-
+from datetime import datetime
 from typing import Sequence
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from jobshop import JobShopRandomParams
 from domain import ScheduledOperation
+from .infra import DefaultFilenamePolicy, HtmlFigureExporter
 
 
 # --- Private label helpers (presentation-only) ---
@@ -34,9 +33,6 @@ def _resource_label(machine: int) -> str:
 
 def _text_label(job: int, lot: int) -> str:
     return f"P{job} - L{lot}"
-
-
-# --- Gantt figure ---
 
 
 def build_gantt_figure(
@@ -124,32 +120,35 @@ def build_gantt_figure(
     return fig
 
 
-# --- Evolution figure ---
-
-
-def build_evolution_figure(
-    best_fitness_history: Sequence[float],
-    title: str = "Best Fitness Evolution",
-) -> plt.Figure:
+def plot_and_export_gantt(
+    ops: Sequence[ScheduledOperation],
+    params: JobShopRandomParams,
+    save: bool = True,
+    open: bool = True,
+) -> None:
     """
-    Create a Matplotlib figure for the best fitness across generations.
+    Create and optionally save/display a Gantt chart.
+
     Args:
-        best_fitness_history: Sequence of best fitness values per generation.
-        title: Title for the figure.
-    Returns:
-        fig: Matplotlib figure object.
+        ops: Scheduled operations to visualize
+        params: Job shop parameters for naming and configuration
+        save: Whether to save as HTML file
+        open: Whether to open in browser (if saving) or show interactive plot
     """
-    generations = list(range(1, len(best_fitness_history) + 1))
+    fig = build_gantt_figure(ops, params.shift_time)
 
-    fig = plt.figure()
-    ax = fig.gca()
-    ax.plot(generations, best_fitness_history, linestyle="-", label="Best Fitness")
-    ax.scatter(generations, best_fitness_history)
-
-    ax.set_xlabel("Generations", fontsize=12)
-    ax.set_ylabel("Fitness", fontsize=12)
-    ax.set_title(title, fontsize=14)
-    ax.grid(False)
-    ax.legend(fontsize=10)
-    fig.tight_layout()
-    return fig
+    if save:
+        name_policy = DefaultFilenamePolicy(
+            n_machines=params.n_machines,
+            n_jobs=params.n_jobs,
+            n_lots=params.n_lots,
+            seed=params.seed,
+            demand=params.demand[0],
+            shift_time=params.shift_time,
+            shift_constraints=bool(params.shift_constraints),
+        )
+        exporter = HtmlFigureExporter()
+        base = name_policy.name_for_gantt(datetime.now())
+        exporter.export_html(fig, base, auto_open=open)
+    elif open:
+        fig.show()
