@@ -175,30 +175,6 @@ class LotStreamingOperators:
         master_ops = self.master_ops
         return [master_ops[op] for op in ops]
 
-    def _rhs_crossover_func(
-        self, rhs1: RHS, rhs2: RHS, deap_crossover_func
-    ) -> tuple[RHS, RHS]:
-        """
-        Applies a DEAP-style crossover function to RHS chromosomes.
-
-        This method converts structured RHS (list of tuples) to a flat representation,
-        applies the crossover, and converts the result back.
-
-        Args:
-            rhs1: RHS of the first chromosome (list of (job, lot) tuples).
-            rhs2: RHS of the second chromosome (list of (job, lot) tuples).
-            deap_crossover_func: DEAP-style crossover function accepting flat lists.
-
-        Returns:
-            A tuple containing two new RHS lists after crossover.
-        """
-        rhs1_ops = self._rhs_to_ops_list(rhs1)
-        rhs2_ops = self._rhs_to_ops_list(rhs2)
-        child1, child2 = deap_crossover_func(rhs1_ops, rhs2_ops)
-        new_rhs1 = self._ops_list_to_rhs(child1)
-        new_rhs2 = self._ops_list_to_rhs(child2)
-        return new_rhs1, new_rhs2
-
     def _rhs_mutation_func(self, rhs: list, deap_mutation_func) -> list:
         """Generic mutation function for right-hand side
             Made to handle deap mutation functions that expect flat lists
@@ -271,32 +247,6 @@ class LotStreamingOperators:
         )
 
     # --------- RHS CROSSOVER METHODS (Job Sequences) ---------
-
-    def pmx_rhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
-        """
-        PMX (Partially Matched Crossover) crossover for right-hand side of chromosomes.
-            For more information, see DEAP package documentation
-        """
-        return self._crossover_template(
-            ind1,
-            ind2,
-            lambda rhs1, rhs2: self._rhs_crossover_func(
-                rhs1, rhs2, tools.cxPartialyMatched
-            ),
-            target_idx=1,
-        )
-
-    def ox_rhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
-        """
-        OX crossover for right-hand side of chromosomes.
-            For more information, see DEAP package documentation
-        """
-        return self._crossover_template(
-            ind1,
-            ind2,
-            lambda rhs1, rhs2: self._rhs_crossover_func(rhs1, rhs2, tools.cxOrdered),
-            target_idx=1,
-        )
 
     def cx_job_level_rhs(self, ind1: list, ind2: list) -> Tuple[list, list]:
         """

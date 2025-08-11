@@ -57,8 +57,6 @@ class GeneticAlgorithm:
         self._cx_funcs = {
             "spc1": operators.spc1_lhs,
             "spc2": operators.spc2_lhs,
-            "pmx": operators.pmx_rhs,
-            "ox": operators.ox_rhs,
             "job_level": operators.cx_job_level_rhs,
         }
         self._mut_funcs = {
@@ -106,9 +104,6 @@ class GeneticAlgorithm:
             # Track the best fitness of the current population
             best_population_fitness = min(ind.fitness.values[0] for ind in population)
 
-            # Append the best fitness of this generation to the history
-            best_fitness_history.append(best_population_fitness)
-
             # Increase mutation rates if no improvement
             self._update_mutation_rates(best_fitness, best_population_fitness)
 
@@ -116,6 +111,8 @@ class GeneticAlgorithm:
             if best_population_fitness < best_fitness:
                 best_fitness = best_population_fitness
                 best_individual = tools.selBest(population, 1)[0]
+                # Append the best fitness of this generation to the history
+                best_fitness_history.append(best_fitness)
 
             # Diversify population if needed
             if (
