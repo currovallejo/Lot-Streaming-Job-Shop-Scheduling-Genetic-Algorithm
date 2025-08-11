@@ -1,4 +1,3 @@
-# from jobshop as jobshop
 from jobshop import JobShopRandomParams
 from genetic.algorithm import GeneticAlgorithm
 from shared.utils import init_logger
