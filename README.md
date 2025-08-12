@@ -8,7 +8,7 @@
 
 This repository implements a genetic algorithm to solve the **Lot Streaming Job Shop Scheduling Problem (LSJSP)**, , with support for **sequence-dependent setup times** and **shift constraints**. It includes modules for generating random problem instances, decoding chromosomes into semi-active schedules, and visualizing results.
 
-| ![newplot](https://github.com/user-attachments/assets/8f404e91-f633-455d-ae4d-4373c8421596) | 
+| ![newplot](https://github.com/user-attachments/assets/a19958ea-16c8-4115-a7dc-7d9ade8d5ded) | 
 |:--:| 
 | *LSJSP Scheduling with shift constraints and sequence dependent setup times* |
 
