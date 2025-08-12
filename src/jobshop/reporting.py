@@ -7,7 +7,7 @@ from job shop parameters without side effects.
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from .types import ProcessingTimes, SetupTimes, JobSequences
 

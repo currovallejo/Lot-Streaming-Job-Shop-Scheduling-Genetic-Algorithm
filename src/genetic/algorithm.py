@@ -14,7 +14,7 @@ Github: https://github.com/currovallejog
 from deap import base, creator, tools
 import time
 import numpy as np
-from typing import Tuple, Callable, Optional, Any, List
+from typing import Tuple, Callable, Optional
 from logging import Logger
 
 from .chromosome import ChromosomeGenerator
