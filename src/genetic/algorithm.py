@@ -70,6 +70,7 @@ class GeneticAlgorithm:
             "msi": operators.shuffle_rhs,
         }
         self.metrics_sink = metrics_sink
+        self.chromosome_generator = ChromosomeGenerator(self.problem_params)
 
     @timed
     def run(self) -> GAResult:
@@ -82,8 +83,8 @@ class GeneticAlgorithm:
         # Create the initial population
         population = toolbox.population(n=self.population_size)
         # Initialize best fitness tracking for plotting
-        best_fitness = float("inf")
-        best_individual = None
+        best_ever_fitness = float("inf")
+        best_ever_individual = None
         self.no_improve_gen = 0  # Counter for generations without improvement
 
         for gen in range(self.num_generations):
@@ -93,32 +94,36 @@ class GeneticAlgorithm:
             offspring = toolbox.select(population, len(population))
             offspring = list(map(toolbox.clone, offspring))
 
-            # Apply crossover and mutation on the offspring
+            # Crossover
             self._apply_crossover(offspring)
+
+            # Mutation
             self._apply_mutation(offspring)
 
             # Evaluate the individuals that have evolved
             for ind in offspring:
-                if not ind.fitness.valid:
-                    ind.fitness.values = toolbox.evaluate(ind)
+                if not ind.fitness.valid:  # type: ignore[attr-defined]
+                    ind.fitness.values = toolbox.evaluate(ind)  # type: ignore[attr-defined]
 
-            # Replace the population by the offspring
+            # Replace population
             population[:] = offspring
 
             # Track the best fitness of the current population
             best_population_fitness = min(ind.fitness.values[0] for ind in population)
 
             # Increase mutation rates if no improvement
-            self._update_mutation_rates(best_fitness, best_population_fitness)
+            self._update_mutation_rates(best_ever_fitness, best_population_fitness)
 
             # Update best solution when found
-            if best_population_fitness < best_fitness:
-                best_fitness = best_population_fitness
-                best_individual = tools.selBest(population, 1)[0]
-                self.metrics_sink.set_best_solution(best_individual)
+            if best_population_fitness < best_ever_fitness:
+                best_ever_fitness = best_population_fitness
+                best_ever_individual = tools.selBest(population, 1)[0]
+                self.metrics_sink.set_best_solution(best_ever_individual)
 
             # Report metrics at the end of each generation
-            self.metrics_sink.on_generation_end(best_population_fitness, best_fitness)
+            self.metrics_sink.on_generation_end(
+                best_population_fitness, best_ever_fitness
+            )
 
             # Diversify population if needed
             if (
@@ -137,7 +142,7 @@ class GeneticAlgorithm:
             )
 
         # Compute final makespan and penalty for the best solution
-        makespan, penalty = self._compute_final_metrics(best_individual)
+        makespan, penalty = self._compute_final_metrics(best_ever_individual)
         self.metrics_sink.set_final_metrics(makespan, penalty)
 
         return self.metrics_sink.finalize()
@@ -167,17 +172,23 @@ class GeneticAlgorithm:
             toolbox: The DEAP toolbox configured with the problem parameters.
         """
         creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-        creator.create("Individual", list, fitness=creator.FitnessMin)
+        creator.create("Individual", list, fitness=creator.FitnessMin)  # Use list base
+
         toolbox = base.Toolbox()
-        toolbox.register(
-            "individual",
-            tools.initIterate,
-            creator.Individual,
-            self._create_individual_factory(),
-        )
+
+        # Register individual creation that converts tuple to list for DEAP
+        def create_individual():
+            chromosome = self.chromosome_generator.generate()
+            # Convert tuple to list for DEAP compatibility, but operators work with original structure
+            return creator.Individual(
+                list(chromosome) if isinstance(chromosome, tuple) else chromosome
+            )
+
+        toolbox.register("individual", create_individual)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
         toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
         toolbox.register("evaluate", self._eval_fitness)
+
         return toolbox
 
     def _apply_crossover(self, offspring: list[Chromosome]):
@@ -193,8 +204,8 @@ class GeneticAlgorithm:
                     child1, child2 = func(ind1, ind2)
                     ind1[:], ind2[:] = child1, child2
                     # invalidate fitness so it’ll be re-evaluated
-                    del ind1.fitness.values
-                    del ind2.fitness.values
+                    del ind1.fitness.values  # type: ignore[attr-defined]
+                    del ind2.fitness.values  # type: ignore[attr-defined]
 
     def _apply_mutation(self, offspring: list[Chromosome]):
         """
@@ -208,7 +219,7 @@ class GeneticAlgorithm:
                 if p > 0 and np.random.rand() < p:
                     mutant = func(ind)
                     ind[:] = mutant
-                    del ind.fitness.values
+                    del ind.fitness.values  # type: ignore[attr-defined]
 
     def _diversify_population(
         self, population: list[Chromosome], toolbox: base.Toolbox
@@ -222,7 +233,7 @@ class GeneticAlgorithm:
         self.diversification_threshold *= 2  # Increase threshold for next time
         # Delete half of the population
         half = self.population_size // 2
-        population.sort(key=lambda ind: ind.fitness.values[0])
+        population.sort(key=lambda ind: ind.fitness.values[0])  # type: ignore[attr-defined]
         new_pop = population[:half]
         # Fill the remainder with new individuals
         n_new = self.population_size - half
@@ -232,7 +243,7 @@ class GeneticAlgorithm:
         return new_pop
 
     def _update_mutation_rates(
-        self, best_fitness: float, best_population_fitness: float
+        self, best_ever_fitness: float, best_population_fitness: float
     ):
         """
         Reset or grow the mutation probabilities based on improvement.
@@ -241,9 +252,9 @@ class GeneticAlgorithm:
         cap = self.config.get("mutation_cap", 0.8)
         factor = self.config.get("mutation_growth", 1.05)
 
-        if best_population_fitness < best_fitness and self.no_improve_gen > 0:
+        if best_population_fitness < best_ever_fitness and self.no_improve_gen > 0:
             # reset everything
-            best_fitness = best_population_fitness
+            best_ever_fitness = best_population_fitness
             self.no_improve_gen = 0
             new_rate = init_sstm
         else:
