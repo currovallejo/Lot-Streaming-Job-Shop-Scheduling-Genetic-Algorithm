@@ -12,9 +12,7 @@ from .results import GAResult
 class MetricsSink(Protocol):
     """Protocol for collecting metrics during GA execution."""
 
-    def on_generation_end(
-        self, best_gen: float, best_ever: float
-    ) -> None:
+    def on_generation_end(self, best_gen: float, best_ever: float) -> None:
         """Called at the end of each generation."""
         ...
 

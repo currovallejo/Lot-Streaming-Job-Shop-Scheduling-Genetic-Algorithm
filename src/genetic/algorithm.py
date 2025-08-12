@@ -233,7 +233,7 @@ class GeneticAlgorithm:
         self.diversification_threshold *= 2  # Increase threshold for next time
         # Delete half of the population
         half = self.population_size // 2
-        population.sort(key=lambda ind: ind.fitness.values[0]) # type: ignore[attr-defined]
+        population.sort(key=lambda ind: ind.fitness.values[0])  # type: ignore[attr-defined]
         new_pop = population[:half]
         # Fill the remainder with new individuals
         n_new = self.population_size - half
