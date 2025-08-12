@@ -8,6 +8,7 @@ from plotting import Plotter
 # --------- MAIN DEMO ---------
 def main():
     logger = init_logger()
+
     # Initialize job shop parameters and print them
     problem_params = JobShopRandomParams(config_path="config/jobshop/js_params_01.yaml")
     problem_params.print_jobshop_params()

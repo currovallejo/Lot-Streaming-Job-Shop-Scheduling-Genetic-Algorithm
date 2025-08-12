@@ -13,7 +13,7 @@ class MetricsSink(Protocol):
     """Protocol for collecting metrics during GA execution."""
 
     def on_generation_end(
-        self, gen_idx: int, best_gen: float, best_ever: float
+        self, best_gen: float, best_ever: float
     ) -> None:
         """Called at the end of each generation."""
         ...
