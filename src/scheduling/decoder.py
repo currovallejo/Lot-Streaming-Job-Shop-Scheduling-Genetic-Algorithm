@@ -32,6 +32,7 @@ from .rules import (
     completion_time_setup_dependent,
     completion_time_setup_independent,
     is_big_lot_duration,
+    lot_processing_duration,
 )
 
 
@@ -123,7 +124,10 @@ class ChromosomeDecoder:
             if static.is_shift_constraints and is_big_lot_duration(
                 static, dynamic, cur
             ):
-                lot_pen = comp % static.shift_time
+                lot_pen = max(
+                    (lot_processing_duration(static, dynamic, cur) - static.shift_time),
+                    comp % static.shift_time,
+                )
                 if lot_pen > max_lot_penalty:
                     max_lot_penalty = lot_pen
                     penalty = penalty_coeff * max_lot_penalty

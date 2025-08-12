@@ -46,7 +46,7 @@ def _completion_current_machine(dyn: DynamicState, m: int) -> int:
     return int(dyn.completion[m, prev_j, prev_u])
 
 
-def _lot_processing_duration(st: StaticData, dyn: DynamicState, cur: Cursor) -> int:
+def lot_processing_duration(st: StaticData, dyn: DynamicState, cur: Cursor) -> int:
     """Calculate the processing duration of the current lot on the current machine."""
     qty = int(dyn.lot_sizes[st.n_lots * cur.job + cur.lot])
     if st.is_setup_dependent:
@@ -142,7 +142,7 @@ def is_big_lot_duration(st: StaticData, dyn: DynamicState, cur: Cursor) -> bool:
     Returns:
         bool: True if the lot processing duration exceeds the shift time, False otherwise.
     """
-    return _lot_processing_duration(st, dyn, cur) > int(st.shift_time)
+    return lot_processing_duration(st, dyn, cur) > int(st.shift_time)
 
 
 def start_time_with_shifts(st: StaticData, dyn: DynamicState, cur: Cursor) -> int:
@@ -164,7 +164,7 @@ def start_time_with_shifts(st: StaticData, dyn: DynamicState, cur: Cursor) -> in
     last_on_m = 0 if is_empty else _completion_current_machine(dyn, cur.machine)
     last_on_prev = 0 if is_first else _completion_prev_machine(st, dyn, cur)
 
-    dur = _lot_processing_duration(st, dyn, cur)
+    dur = lot_processing_duration(st, dyn, cur)
 
     if is_first:
         if is_empty:
